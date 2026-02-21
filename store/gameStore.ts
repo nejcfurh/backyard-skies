@@ -190,7 +190,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ? (localStorage.getItem('backyard-skies-controls') as
           | 'buttons'
           | 'tap-steer')
-      : null) || 'buttons',
+      : null) || 'tap-steer',
   deathReason: null,
 
   food: 100,
@@ -261,7 +261,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   pauseGame: () => set({ isPaused: true }),
   resumeGame: () => set({ isPaused: false }),
 
-  gameOver: (reason) => {
+  gameOver: reason => {
     const { score, distance, selectedSpecies } = get();
     set({ gameState: 'game-over', deathReason: reason || null });
     // Auto-save anonymous entry
@@ -281,7 +281,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Player actions
   flap: () => {
-    const { flapCooldown, stamina, gameState, eagleDodgeWindow, eagleDodgeTaps } = get();
+    const {
+      flapCooldown,
+      stamina,
+      gameState,
+      eagleDodgeWindow,
+      eagleDodgeTaps,
+    } = get();
     if (flapCooldown > 0 || stamina <= 0) return;
     if (gameState !== 'flight') return;
     set({ isFlapping: true, flapCooldown: 0.15 });

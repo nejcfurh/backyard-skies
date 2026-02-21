@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { BiChevronLeft, BiChevronRight } from 'react-icons/bi';
+import { BsQuestion } from 'react-icons/bs';
 
 export default function SettingsScreen() {
   const setGameState = useGameStore(s => s.setGameState);
@@ -13,6 +14,7 @@ export default function SettingsScreen() {
   const setControlScheme = useGameStore(s => s.setControlScheme);
   const [saved, setSaved] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const isFirstTime = !playerName;
 
   const handleSave = () => {
@@ -23,25 +25,114 @@ export default function SettingsScreen() {
     }
   };
 
-  if (showTerms) {
+  if (showTips) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
-        <div className="flex flex-col h-full pt-12 px-6 pb-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
+        <div className="flex flex-col h-full pt-7 px-6">
+          <div className="relative flex items-center justify-center mb-6">
             <button
-              onClick={() => setShowTerms(false)}
-              className="w-10 h-10 rounded-full flex items-center justify-center bg-black/8 border border-black/10 text-black text-lg cursor-pointer"
+              onClick={() => setShowTips(false)}
+              className="absolute left-0 w-10 h-10 rounded-full flex items-center justify-center bg-black/8 border border-black/10 text-black text-lg cursor-pointer"
             >
               <BiChevronLeft />
             </button>
-            <span className="text-sm font-bold text-black/70">
-              Terms & Conditions
+            <span className="text-lg font-bold text-black/70 tracking-[0.25em] uppercase">
+              Tips & Tricks
             </span>
           </div>
 
+          <div
+            style={{ scrollbarWidth: 'none' }}
+            className="flex-1 overflow-auto flex flex-col gap-3"
+          >
+            <TipSection title="Flying" icon="🕊">
+              <li>Tap the screen to flap and gain altitude</li>
+              <li>
+                Use L/R buttons to steer, or tap screen sides in Tap-to-Steer
+                mode
+              </li>
+              <li>Stop flapping to glide and descend</li>
+              <li>Hit the ground and a cat catches you — game over!</li>
+            </TipSection>
+
+            <TipSection title="Food & Water" icon="🌾">
+              <li>Food and water drain as you fly — watch the top gauges</li>
+              <li>Land on feeders to eat, birdbaths to drink</li>
+              <li>Green glow on screen edge points to nearest feeder</li>
+              <li>Blue glow points to nearest birdbath</li>
+              <li>If either runs out, your bird goes down!</li>
+            </TipSection>
+
+            <TipSection title="Feeding & Drinking" icon="🍽">
+              <li>Fly near a feeder or birdbath to land automatically</li>
+              <li>Your bird eats or drinks while perched, earning score</li>
+              <li>
+                A threat meter fills while perched — leave before it maxes out!
+              </li>
+              <li>Tap the screen to fly away after a short landing delay</li>
+            </TipSection>
+
+            <TipSection title="Dangerous Feeders" icon="🐱">
+              <li>Some feeders have a cat lurking nearby</li>
+              <li>The threat meter fills much faster — react immediately!</li>
+              <li>Stay too long and the cat catches you</li>
+            </TipSection>
+
+            <TipSection title="Eagle Attacks" icon="🦅">
+              <li>Eagles hunt you periodically during flight</li>
+              <li>Turn hard (90°) during the dodge window to evade</li>
+              <li>Near the altitude limit? Tap rapidly (3 taps) instead</li>
+              <li>Dodging an eagle earns bonus points!</li>
+            </TipSection>
+
+            <TipSection title="Altitude Limit" icon="⬆">
+              <li>Fly too high and an eagle starts hunting you</li>
+              <li>You have 4 seconds to descend — stop flapping!</li>
+              <li>Drop below the warning level and the eagle backs off</li>
+            </TipSection>
+
+            <TipSection title="Scoring" icon="⭐">
+              <li>Score increases over time as you fly</li>
+              <li>Eating and drinking earns extra points</li>
+              <li>Dodging eagles gives a big score bonus</li>
+            </TipSection>
+
+            <TipSection title="Bird Species" icon="🐦">
+              <li>
+                Each bird has different stats — speed, power, stamina and more
+              </li>
+              <li>Some birds are faster but drain food quicker</li>
+              <li>Try all four to find your favourite!</li>
+            </TipSection>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showTerms) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
+        <div className="flex flex-col h-full pt-6 px-6 pb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <button
+              onClick={() => setShowTerms(false)}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-black/8 border border-black/10 text-black text-base cursor-pointer"
+            >
+              <BiChevronLeft />
+            </button>
+            <span className="text-lg font-bold uppercase text-black/70 tracking-[0.05em]">
+              Terms & Conditions
+            </span>
+            <div className="w-10 h-10" />
+          </div>
+
           {/* Terms content */}
-          <div className="flex-1 overflow-auto bg-black/5 backdrop-blur-2xl rounded-2xl p-5 border border-black/6">
+          <div
+            style={{ scrollbarWidth: 'none' }}
+            className="flex-1 overflow-auto bg-black/5 backdrop-blur-2xl rounded-2xl p-5 border border-black/6"
+          >
             <div className="text-xs text-black/60 leading-[1.8]">
               <p className="font-bold text-black text-sm mb-3">
                 Backyard Skies - Terms & Conditions
@@ -133,10 +224,10 @@ export default function SettingsScreen() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
-      <div className="flex flex-col h-full pt-12 px-6 pb-6 overflow-auto">
+    <div className="w-100vw h-100dvh z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
+      <div className="flex flex-col h-full pt-6 px-6 pb-10 overflow-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           {!isFirstTime ? (
             <button
               onClick={() => setGameState('menu')}
@@ -150,16 +241,21 @@ export default function SettingsScreen() {
           <span className="text-lg font-bold text-black/70 tracking-[0.25em] uppercase">
             {isFirstTime ? 'Welcome' : 'Settings'}
           </span>
-          <div className="w-10" />
+          <button
+            onClick={() => setShowTips(true)}
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-black/8 border border-black/10 text-black text-lg cursor-pointer"
+          >
+            <BsQuestion />
+          </button>
         </div>
 
         {/* Player Name Section */}
-        <div className="w-full max-w-[360px] mx-auto mb-6 bg-black/40 backdrop-blur-xl rounded-[20px] p-5 border border-black/6">
+        <div className="w-full max-w-[360px] mx-auto mb-4 bg-black/40 backdrop-blur-xl rounded-[20px] p-5 border border-black/6">
           <p className="text-base text-white/70 tracking-[0.2em] uppercase font-semibold mb-3">
             Player Name
           </p>
 
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <div
               className="flex-1 relative"
               onPointerDown={e => e.stopPropagation()}
@@ -179,20 +275,29 @@ export default function SettingsScreen() {
             <button
               onClick={handleSave}
               className={`py-3 px-5 rounded-xl border-none text-white text-[13px] font-bold cursor-pointer transition-colors ${
-                saved ? 'bg-[#4CAF50]' : 'bg-[#00AEEF]'
+                saved ? 'bg-[#4CAF50]' : 'bg-[#3f494c]'
               }`}
             >
               {saved ? 'Saved!' : 'Save'}
             </button>
           </div>
-
-          <p className="text-sm text-white/50 italic mt-2">
-            This name will appear on the leaderboard when you save a score.
-          </p>
+          <button
+            onClick={() => setShowTerms(true)}
+            className="w-full mt-3.5 flex items-center justify-between py-3.5 px-4 rounded-xl bg-black/3 border border-white/40 text-white cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-base font-semibold text-white/80">
+                Terms & Conditions
+              </span>
+            </div>
+            <span className="text-sm text-white/50">
+              <BiChevronRight />
+            </span>
+          </button>
         </div>
 
         {/* Control Scheme */}
-        <div className="w-full max-w-[360px] mx-auto mb-6 bg-black/30 backdrop-blur-xl rounded-[20px] p-5 border border-black/6">
+        <div className="w-full max-w-[360px] mx-auto mb-4 bg-black/30 backdrop-blur-xl rounded-[20px] p-5 border border-black/6">
           <p className="text-base text-white/70 tracking-[0.2em] uppercase font-semibold mb-3.5">
             Controls
           </p>
@@ -253,53 +358,46 @@ export default function SettingsScreen() {
           </div>
         </div>
 
-        {/* Terms & Conditions */}
-        <div className="w-full max-w-[360px] mx-auto bg-black/40 backdrop-blur-2xl rounded-[20px] p-5 border border-black/6">
-          <p className="text-base text-white/70 tracking-[0.2em] uppercase font-semibold mb-3.5">
-            Legal
-          </p>
-
-          <button
-            onClick={() => setShowTerms(true)}
-            className="w-full flex items-center justify-between py-3.5 px-4 rounded-xl bg-black/3 border border-white/40 text-white cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-base font-semibold text-white/80">
-                Terms & Conditions
-              </span>
-            </div>
-            <span className="text-sm text-white/50">
-              <BiChevronRight />
-            </span>
-          </button>
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Continue button for first-time setup */}
-        {isFirstTime && (
-          <button
-            onClick={() => {
-              if (name.trim()) {
-                setPlayerName(name.trim());
-              }
-              setGameState('species-select');
-            }}
-            className="w-full max-w-[360px] mx-auto mb-4 py-[18px] rounded-2xl font-extrabold text-[17px] text-white bg-linear-to-br from-[#00AEEF] to-[#0077BB] shadow-[0_6px_28px_rgba(0,174,239,0.40)] border-none cursor-pointer flex items-center justify-center gap-2.5 tracking-wide"
-          >
-            CHOOSE YOUR BIRD
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (name.trim()) {
+              setPlayerName(name.trim());
+            }
+            setGameState('species-select');
+          }}
+          className="w-full max-w-[360px] mx-auto mb-2 py-[18px] rounded-2xl font-extrabold text-[17px] text-white bg-linear-to-br from-[#00AEEF] to-[#0077BB] shadow-[0_6px_28px_rgba(0,174,239,0.40)] border-none cursor-pointer flex items-center justify-center gap-2.5 tracking-wide"
+        >
+          CHOOSE YOUR BIRD
+        </button>
 
         {/* App info */}
-        <div className="text-center mb-4">
-          <p className="text-xs text-black/30 font-semibold">Backyard Skies</p>
-          <p className="text-[10px] text-black/20 mt-1">
-            v1.0.0 · by Birdbuddy
+        <div className="text-center mt-2 mb-4">
+          <p className="text-[10px] text-white/20 mt-1">
+            Version 0.0.1 · by Nejc Furh
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TipSection({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-4 border border-white/6">
+      <p className="font-bold text-white text-base mb-2.5 flex items-center gap-2.5">
+        <span className="text-xl">{icon}</span> {title}
+      </p>
+      <ul className="list-none pl-0 flex flex-col gap-2 text-[13px] text-white/70 leading-relaxed">
+        {children}
+      </ul>
     </div>
   );
 }

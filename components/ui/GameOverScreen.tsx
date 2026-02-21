@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { BIRD_SPECIES } from '@/lib/birdSpecies';
 import { PiBird } from 'react-icons/pi';
+import { BiChevronLeft } from 'react-icons/bi';
 
 const DEATH_MESSAGES: Record<string, { title: string; subtitle: string }> = {
   food: {
@@ -52,8 +53,8 @@ export default function GameOverScreen() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-linear-to-b from-[#0a0a1a] via-[#1a1a2e] to-[#0a0a1a]">
-      <div className="flex flex-col items-center justify-between h-full pt-12 px-6 pb-8">
+    <div className="w-full h-full z-50 flex flex-col bg-linear-to-b from-[#0a0a1a] via-[#1a1a2e] to-[#0a0a1a]">
+      <div className="flex flex-col items-center justify-between h-full pt-3 px-6 pb-8">
         {/* Title */}
         <div className="text-center mt-4">
           <h1 className="text-4xl font-black text-white">{death.title}</h1>
@@ -165,9 +166,9 @@ export default function GameOverScreen() {
 
           <button
             onClick={() => setGameState('menu')}
-            className="w-full py-3.5 rounded-2xl font-bold text-[13px] text-white/50 bg-white/4 border-none cursor-pointer"
+            className="flex items-center justify-center gap-2 w-full rounded-2xl font-thin text-lg text-white/50  border-none cursor-pointer mt-3"
           >
-            MAIN MENU
+            <BiChevronLeft className="scale-150" /> Back to Menu
           </button>
         </div>
       </div>

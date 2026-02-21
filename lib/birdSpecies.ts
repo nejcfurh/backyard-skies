@@ -5,7 +5,8 @@ export const BIRD_SPECIES: Record<string, BirdSpecies> = {
     id: 'cardinal',
     name: 'Northern Cardinal',
     scientificName: 'Cardinalis cardinalis',
-    description: 'A robust songbird with a distinctive crest. Balanced stats make it ideal for beginners.',
+    description:
+      'A robust songbird with a distinctive crest. Balanced stats make it ideal for beginners.',
     attributes: {
       speed: 7,
       flapPower: 1.0,
@@ -36,7 +37,8 @@ export const BIRD_SPECIES: Record<string, BirdSpecies> = {
     id: 'tanager',
     name: 'Scarlet Tanager',
     scientificName: 'Piranga olivacea',
-    description: 'A blazing scarlet flyer with jet-black wings. Fast but burns energy quickly.',
+    description:
+      'A blazing scarlet flyer with jet-black wings. Fast but burns energy quickly.',
     attributes: {
       speed: 9,
       flapPower: 1.2,
@@ -66,7 +68,8 @@ export const BIRD_SPECIES: Record<string, BirdSpecies> = {
     id: 'bunting',
     name: 'Indigo Bunting',
     scientificName: 'Passerina cyanea',
-    description: 'A tiny electric-blue gem. Agile with great stamina, but limited food capacity.',
+    description:
+      'A tiny electric-blue gem. Agile with great stamina, but limited food capacity.',
     attributes: {
       speed: 8,
       flapPower: 1.1,
@@ -94,9 +97,10 @@ export const BIRD_SPECIES: Record<string, BirdSpecies> = {
 
   starling: {
     id: 'starling',
-    name: 'European Starling',
+    name: 'Common Starling',
     scientificName: 'Sturnus vulgaris',
-    description: 'A stocky, iridescent powerhouse. Slow but can store the most food and water.',
+    description:
+      'A stocky, iridescent powerhouse. Slow but can store the most food and water.',
     attributes: {
       speed: 6,
       flapPower: 0.9,
@@ -125,4 +129,6 @@ export const BIRD_SPECIES: Record<string, BirdSpecies> = {
 };
 
 export const SPECIES_LIST = Object.values(BIRD_SPECIES);
-export const SPECIES_IDS = Object.keys(BIRD_SPECIES) as Array<keyof typeof BIRD_SPECIES>;
+export const SPECIES_IDS = Object.keys(BIRD_SPECIES) as Array<
+  keyof typeof BIRD_SPECIES
+>;

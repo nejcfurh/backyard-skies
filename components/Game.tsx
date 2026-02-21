@@ -13,30 +13,75 @@ import VirtualJoystick from '@/components/ui/VirtualJoystick';
 import BottomNav from '@/components/ui/BottomNav';
 import FeederDirectionHint from '@/components/ui/FeederDirectionHint';
 
-
 const GameCanvas = dynamic(() => import('@/components/GameCanvas'), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ background: '#0a1628' }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ background: '#0a1628' }}
+    >
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-full animate-spin" style={{ border: '4px solid rgba(0,174,239,0.2)', borderTopColor: '#00AEEF' }} />
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', letterSpacing: '0.15em' }}>LOADING...</p>
+        <div
+          className="w-12 h-12 rounded-full animate-spin"
+          style={{
+            border: '4px solid rgba(0,174,239,0.2)',
+            borderTopColor: '#00AEEF',
+          }}
+        />
+        <p
+          style={{
+            color: 'rgba(255,255,255,0.3)',
+            fontSize: '12px',
+            letterSpacing: '0.15em',
+          }}
+        >
+          LOADING...
+        </p>
       </div>
     </div>
   ),
 });
 
+function MobileOnly() {
+  return (
+    <div className="hidden md:flex fixed inset-0 z-100 bg-background flex-col items-center justify-center px-8 text-center">
+      <p className="text-5xl mb-6">🐦</p>
+      <h1 className="text-2xl font-bold text-white mb-3">Mobile Only</h1>
+      <p className="text-base text-white/50 max-w-sm leading-relaxed">
+        Backyard Skies is designed for mobile devices. Open this page on your
+        phone to play.
+      </p>
+    </div>
+  );
+}
+
 export default function Game() {
-  const gameState = useGameStore((s) => s.gameState);
+  const gameState = useGameStore(s => s.gameState);
 
   const handleJoystickMove = useCallback((x: number) => {
     window.dispatchEvent(new CustomEvent('joystick-move', { detail: x }));
   }, []);
 
-  const isPlaying = gameState === 'flight' || gameState === 'feeding' || gameState === 'drinking';
+  const isPlaying =
+    gameState === 'flight' ||
+    gameState === 'feeding' ||
+    gameState === 'drinking';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', overflow: 'hidden', background: '#0a1628', touchAction: 'none', userSelect: 'none' }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        background: '#0a1628',
+        touchAction: 'none',
+        userSelect: 'none',
+      }}
+    >
+      <MobileOnly />
+
       {/* 3D Canvas */}
       <GameCanvas />
 
@@ -53,7 +98,6 @@ export default function Game() {
           <VirtualJoystick onMove={handleJoystickMove} />
           <BottomNav />
           <FeederDirectionHint />
-
         </>
       )}
     </div>

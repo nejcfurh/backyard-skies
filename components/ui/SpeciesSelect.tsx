@@ -44,8 +44,8 @@ export default function SpeciesSelect() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
-      <div className="flex flex-col h-full pt-12 px-6 pb-10 overflow-auto">
+    <div className="w-full h-100dvh z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
+      <div className="flex flex-col h-full pt-7 px-6 pb-10 overflow-auto">
         {/* Header */}
         <div className="relative flex items-center justify-center mb-6">
           <button
@@ -55,19 +55,19 @@ export default function SpeciesSelect() {
             <BiChevronLeft className="text-black" />
           </button>
           <span className="text-lg font-bold text-black/70 tracking-[0.25em] uppercase">
-            Choose Your Bird
+            Pick Your Bird
           </span>
         </div>
 
         {/* Species cards row */}
-        <div className="flex gap-2.5 justify-center mb-7">
+        <div className="flex gap-4 justify-center mb-4">
           {SPECIES_LIST.map(sp => {
             const isActive = selectedId === sp.id;
             return (
               <button
                 key={sp.id}
                 onClick={() => setSelectedId(sp.id)}
-                className={`flex-none w-[74px] pt-3.5 pb-2.5 rounded-2xl flex flex-col items-center gap-1.5 cursor-pointer transition-all duration-200 ${
+                className={`flex-none w-[74px] pt-3 pb-2 rounded-2xl flex flex-col items-center gap-2 cursor-pointer transition-all duration-200 ${
                   isActive
                     ? 'scale-[1.05] border-2'
                     : 'scale-100 bg-black/3 border-2 border-black/6'
@@ -107,10 +107,10 @@ export default function SpeciesSelect() {
         </div>
 
         {/* Selected bird info */}
-        <div className="w-full max-w-[360px] mx-auto bg-black/3 backdrop-blur-2xl rounded-[20px] p-6 border border-black/6 mb-5">
+        <div className="w-full max-w-[360px] mx-auto bg-black/20 backdrop-blur-2xl rounded-2xl p-5 border border-black/10 mb-4">
           {/* Name + tagline */}
           <div className="text-center mb-5">
-            <h3 className="text-3xl font-black text-white leading-tight drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+            <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-[0_4px_30px_rgba(0,0,0,1)]">
               {selected.name}
             </h3>
             <p
@@ -119,13 +119,13 @@ export default function SpeciesSelect() {
             >
               {selected.scientificName}
             </p>
-            <p className="text-xs text-black/80 mt-2 bg-white/20 drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] inline-block py-1 px-3.5 rounded-[20px]">
+            <p className="text-xs text-white/80 mt-2 bg-white/20 drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] inline-block py-1 px-3 rounded-full">
               {SPECIES_TAGLINES[selectedId]}
             </p>
           </div>
 
           {/* Stat bars */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
             {STAT_CONFIG.map(({ key, label, color, max }) => {
               const value = selected.attributes[
                 key as keyof typeof selected.attributes
@@ -133,11 +133,11 @@ export default function SpeciesSelect() {
               const pct = Math.min((value / max) * 100, 100);
               return (
                 <div key={key}>
-                  <div className="flex justify-between items-center mb-1.5">
+                  <div className="flex justify-between items-center mb-0.5">
                     <span className="text-[9px] text-white/45 tracking-[0.15em] font-semibold uppercase">
                       {label}
                     </span>
-                    <span className="text-[10px] text-white/60 font-bold font-mono">
+                    <span className="text-[10px] text-white/80 font-bold font-mono">
                       {typeof value === 'number' && value % 1 !== 0
                         ? value.toFixed(1)
                         : value}
@@ -159,23 +159,19 @@ export default function SpeciesSelect() {
         </div>
 
         {/* Description */}
-        <p className="text-base text-white italic text-center max-w-[300px] mx-auto mb-6 font-semibold leading-relaxed drop-shadow-[0_5px_10px_rgba(0,0,0,1)]">
+        <p className="text-sm px-3 text-white italic text-center mx-auto mb-6 font-semibold leading-relaxed drop-shadow-[0_5px_10px_rgba(0,0,0,1)]">
           {selected.description}
         </p>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* Select button */}
         <button
           onClick={handleSelect}
-          className="mb-10 w-full max-w-[360px] mx-auto py-[18px] rounded-2xl font-extrabold text-[17px] text-white border-none cursor-pointer flex items-center justify-center gap-2.5 tracking-wide"
+          className="mb-10 w-full mx-auto py-5 rounded-3xl font-extrabold text-lg text-white border-none cursor-pointer flex items-center justify-center gap-2 tracking-wide"
           style={{
             background: `linear-gradient(135deg, ${selected.colors.body}, ${selected.colors.body}BB)`,
             boxShadow: `0 6px 28px ${selected.colors.body}40`,
           }}
         >
-          FLY AS {selected.name.split(' ').pop()?.toUpperCase()}
+          FLY AS {selected.name.toUpperCase()}
         </button>
       </div>
     </div>

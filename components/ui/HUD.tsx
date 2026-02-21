@@ -22,12 +22,19 @@ export default function HUD() {
     <div className="fixed inset-0 pointer-events-none z-50">
       {/* Top bar */}
       <div className="flex justify-between items-start px-4 pt-[max(16px,env(safe-area-inset-top))]">
-        {/* Food circle - left */}
-        <ResourceCircle value={foodPct} color="#4CAF50" bgColor="#1B5E20" icon="🌾" />
+        {/* Food circle + warning - left */}
+        <div className="flex flex-col items-center gap-1.5">
+          <ResourceCircle value={foodPct} color="#4CAF50" bgColor="#1B5E20" icon="🌾" />
+          {foodPct < RESOURCE_WARNING_THRESHOLD && foodPct > 0 && (
+            <span className="text-[9px] font-bold text-[#FF9800] bg-black/50 py-1 px-2.5 rounded-xl backdrop-blur-md animate-[pulse_1.5s_ease-in-out_infinite] whitespace-nowrap">
+              FIND FEEDER
+            </span>
+          )}
+        </div>
 
         {/* Score & distance - center */}
         <div className="flex flex-col items-center">
-          <span className="text-6xl font-black text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+          <span className="text-6xl font-black text-white">
             {Math.floor(score).toLocaleString()}
           </span>
           <span className="text-xs text-white/50 font-medium">
@@ -35,31 +42,19 @@ export default function HUD() {
           </span>
         </div>
 
-        {/* Water circle - right */}
-        <ResourceCircle value={waterPct} color="#00AEEF" bgColor="#01579B" icon="💧" />
+        {/* Water circle + warning - right */}
+        <div className="flex flex-col items-center gap-1.5">
+          <ResourceCircle value={waterPct} color="#00AEEF" bgColor="#01579B" icon="💧" />
+          {waterPct < RESOURCE_WARNING_THRESHOLD && waterPct > 0 && (
+            <span className="text-[9px] font-bold text-[#4FC3F7] bg-black/50 py-1 px-2.5 rounded-xl backdrop-blur-md animate-[pulse_1.5s_ease-in-out_infinite] whitespace-nowrap">
+              FIND BATH
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Feeding/Drinking state */}
       {showFeedingState && <FeedingIndicator gameState={gameState} />}
-
-      {/* Low resource warnings */}
-      {foodPct < RESOURCE_WARNING_THRESHOLD && foodPct > 0 && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 animate-[pulse_1.5s_ease-in-out_infinite]">
-          <span className="text-xs font-bold text-[#FF9800] bg-black/50 py-1.5 px-3.5 rounded-[20px] backdrop-blur-md">
-            FIND A FEEDER SOON
-          </span>
-        </div>
-      )}
-      {waterPct < RESOURCE_WARNING_THRESHOLD && waterPct > 0 && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 animate-[pulse_1.5s_ease-in-out_infinite]"
-          style={{ top: foodPct < RESOURCE_WARNING_THRESHOLD ? 108 : 80 }}
-        >
-          <span className="text-xs font-bold text-[#4FC3F7] bg-black/50 py-1.5 px-3.5 rounded-[20px] backdrop-blur-md">
-            FIND A BIRDBATH SOON
-          </span>
-        </div>
-      )}
 
     </div>
   );
@@ -102,7 +97,7 @@ function FeedingIndicator({ gameState }: { gameState: string }) {
   const color = gameState === 'feeding' ? '#4CAF50' : '#00AEEF';
 
   return (
-    <div className="absolute top-[78px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+    <div className="absolute top-[120px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
       <span
         className="text-[10px] font-bold py-1 px-3.5 rounded-xl backdrop-blur-lg"
         style={{ background: `${color}30`, color }}

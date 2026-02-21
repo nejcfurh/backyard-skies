@@ -4,7 +4,7 @@ const FloatingParticles = () => {
       {[...Array(100)].map((_, i) => (
         <div
           key={i}
-          className="absolute rounded-full bg-white/15"
+          className="absolute rounded-full bg-white/40"
           style={{
             width: i % 3 === 0 ? 3 : 2,
             height: i % 3 === 0 ? 3 : 2,

@@ -14,11 +14,43 @@ class AudioManager {
   private ctx: AudioContext | null = null;
   private muted = false;
   private activeLoops = new Map<string, ActiveLoop>();
+  private unlockListenerAdded = false;
 
-  private ensureContext() {
+  private ensureContext(): AudioContext {
     if (!this.ctx) {
-      this.ctx = new AudioContext();
+      // Use webkitAudioContext fallback for older Safari
+      const Ctor =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      this.ctx = new Ctor();
     }
+
+    // On mobile Safari the context starts suspended and can only be
+    // resumed inside a direct user-gesture handler. Register a one-time
+    // touch/click listener that resumes the context and plays a silent
+    // buffer to fully unlock audio (also works around the iOS silent switch).
+    if (!this.unlockListenerAdded) {
+      this.unlockListenerAdded = true;
+      const unlock = () => {
+        if (this.ctx && this.ctx.state !== 'running') {
+          this.ctx.resume();
+          // Silent buffer kick — required on iOS to actually unlock output
+          const buf = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+          const src = this.ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(this.ctx.destination);
+          src.start(0);
+        }
+        document.removeEventListener('touchstart', unlock, true);
+        document.removeEventListener('touchend', unlock, true);
+        document.removeEventListener('click', unlock, true);
+      };
+      document.addEventListener('touchstart', unlock, true);
+      document.addEventListener('touchend', unlock, true);
+      document.addEventListener('click', unlock, true);
+    }
+
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }

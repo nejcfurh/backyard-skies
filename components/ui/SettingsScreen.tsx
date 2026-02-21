@@ -10,8 +10,8 @@ export default function SettingsScreen() {
   const playerName = useGameStore(s => s.playerName);
   const setPlayerName = useGameStore(s => s.setPlayerName);
   const [name, setName] = useState(playerName);
-  const controlScheme = useGameStore(s => s.controlScheme);
-  const setControlScheme = useGameStore(s => s.setControlScheme);
+  const isMuted = useGameStore(s => s.isMuted);
+  const setMuted = useGameStore(s => s.setMuted);
   const [saved, setSaved] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showTips, setShowTips] = useState(false);
@@ -28,7 +28,7 @@ export default function SettingsScreen() {
   if (showTips) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
-        <div className="flex flex-col h-full pt-7 px-6">
+        <div className="flex flex-col h-full pt-7.5 px-6">
           <div className="relative flex items-center justify-center mb-6">
             <button
               onClick={() => setShowTips(false)}
@@ -48,8 +48,8 @@ export default function SettingsScreen() {
             <TipSection title="Flying" icon="🕊">
               <li>Tap the screen to flap and gain altitude</li>
               <li>
-                Use L/R buttons to steer, or tap screen sides in Tap-to-Steer
-                mode
+                Tap left side to turn left, right side to turn right, center to
+                go straight
               </li>
               <li>Stop flapping to glide and descend</li>
               <li>Hit the ground and a cat catches you — game over!</li>
@@ -115,7 +115,7 @@ export default function SettingsScreen() {
       <div className="fixed inset-0 z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
         <div className="flex flex-col h-full pt-6 px-6 pb-6">
           {/* Header */}
-          <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
             <button
               onClick={() => setShowTerms(false)}
               className="w-10 h-10 rounded-full flex items-center justify-center bg-black/8 border border-black/10 text-black text-base cursor-pointer"
@@ -224,10 +224,10 @@ export default function SettingsScreen() {
   }
 
   return (
-    <div className="w-100vw h-100dvh z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
-      <div className="flex flex-col h-full pt-6 px-6 pb-10 overflow-auto">
+    <div className="w-full h-full z-50 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
+      <div className="flex flex-col justify-between py-6 px-6  h-100dvh">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4">
           {!isFirstTime ? (
             <button
               onClick={() => setGameState('menu')}
@@ -281,82 +281,45 @@ export default function SettingsScreen() {
               {saved ? 'Saved!' : 'Save'}
             </button>
           </div>
+        </div>
+
+        {/* Sound */}
+        <div className="w-full max-w-[360px] mx-auto bg-black/30 backdrop-blur-xl rounded-[20px] p-5 border border-black/6">
+          <p className="text-base text-white/70 tracking-[0.2em] uppercase font-semibold mb-3.5">
+            Sound
+          </p>
           <button
-            onClick={() => setShowTerms(true)}
-            className="w-full mt-3.5 flex items-center justify-between py-3.5 px-4 rounded-xl bg-black/3 border border-white/40 text-white cursor-pointer"
+            onClick={() => setMuted(!isMuted)}
+            className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between cursor-pointer ${
+              isMuted
+                ? 'bg-black/3 border-2 border-white/6'
+                : 'bg-[rgba(0,174,239,0.12)] border-2 border-[#00AEEF]'
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <span className="text-base font-semibold text-white/80">
-                Terms & Conditions
-              </span>
-            </div>
-            <span className="text-sm text-white/50">
-              <BiChevronRight />
+            <span className="text-[13px] font-bold text-white/80">
+              Sound Effects
+            </span>
+            <span
+              className={`text-sm font-bold ${isMuted ? 'text-white/30' : 'text-[#00AEEF]'}`}
+            >
+              {isMuted ? 'OFF' : 'ON'}
             </span>
           </button>
         </div>
 
-        {/* Control Scheme */}
-        <div className="w-full max-w-[360px] mx-auto mb-4 bg-black/30 backdrop-blur-xl rounded-[20px] p-5 border border-black/6">
-          <p className="text-base text-white/70 tracking-[0.2em] uppercase font-semibold mb-3.5">
-            Controls
-          </p>
-
-          <div className="flex flex-col gap-2.5">
-            {/* Buttons option */}
-            <button
-              onClick={() => setControlScheme('buttons')}
-              className={`w-full py-3.5 px-4 rounded-xl flex items-center gap-3.5 cursor-pointer text-left ${
-                controlScheme === 'buttons'
-                  ? 'bg-[rgba(0,174,239,0.12)] border-2 border-[#00AEEF]'
-                  : 'bg-black/3 border-2 border-white/6'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full shrink-0 ${
-                  controlScheme === 'buttons'
-                    ? 'border-[6px] border-[#00AEEF]'
-                    : 'border-2 border-white/20'
-                }`}
-              />
-              <div>
-                <p className="text-[13px] font-bold text-white/80 m-0">
-                  Directional Buttons
-                </p>
-                <p className="text-sm text-white/50 mt-[3px] m-0">
-                  Hold L/R buttons to steer, tap screen to flap
-                </p>
-              </div>
-            </button>
-
-            {/* Tap-steer option */}
-            <button
-              onClick={() => setControlScheme('tap-steer')}
-              className={`w-full py-3.5 px-4 rounded-[14px] flex items-center gap-3.5 cursor-pointer text-left ${
-                controlScheme === 'tap-steer'
-                  ? 'bg-[rgba(0,174,239,0.12)] border-2 border-[#00AEEF]'
-                  : 'bg-black/3 border-2 border-white/6'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full shrink-0 ${
-                  controlScheme === 'tap-steer'
-                    ? 'border-[6px] border-[#00AEEF]'
-                    : 'border-2 border-white/20'
-                }`}
-              />
-              <div>
-                <p className="text-[13px] font-bold text-white/80 m-0">
-                  Tap to Steer
-                </p>
-                <p className="text-sm text-white/50 mt-[3px] m-0">
-                  Tap left side to turn left, right side to turn right, center
-                  to go straight — all flap
-                </p>
-              </div>
-            </button>
+        <button
+          onClick={() => setShowTerms(true)}
+          className="w-full my-5 flex items-center justify-between py-3.5 px-4 rounded-xl bg-black/3 border border-white/40 text-white cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-base font-semibold text-white/80">
+              Terms & Conditions
+            </span>
           </div>
-        </div>
+          <span className="text-sm text-white/50">
+            <BiChevronRight />
+          </span>
+        </button>
 
         <button
           onClick={() => {
@@ -365,13 +328,13 @@ export default function SettingsScreen() {
             }
             setGameState('species-select');
           }}
-          className="w-full max-w-[360px] mx-auto mb-2 py-[18px] rounded-2xl font-extrabold text-[17px] text-white bg-linear-to-br from-[#00AEEF] to-[#0077BB] shadow-[0_6px_28px_rgba(0,174,239,0.40)] border-none cursor-pointer flex items-center justify-center gap-2.5 tracking-wide"
+          className="w-full max-w-[360px] mx-auto my-5 py-[18px] rounded-2xl font-extrabold text-[17px] text-white bg-linear-to-br from-[#00AEEF] to-[#0077BB] shadow-[0_6px_28px_rgba(0,174,239,0.40)] border-none cursor-pointer flex items-center justify-center gap-2.5 tracking-wide"
         >
           CHOOSE YOUR BIRD
         </button>
 
         {/* App info */}
-        <div className="text-center mt-2 mb-4">
+        <div className=" fixed bottom-0 left-0 right-0 text-center mt-2 mb-4">
           <p className="text-[10px] text-white/20 mt-1">
             Version 0.0.1 · by Nejc Furh
           </p>

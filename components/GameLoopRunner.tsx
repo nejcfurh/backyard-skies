@@ -8,16 +8,7 @@ export default function GameLoopRunner() {
   const joystickXRef = useRef(0);
   const tapSteerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Listen for joystick updates via custom event from VirtualJoystick (buttons mode)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      joystickXRef.current = (e as CustomEvent<number>).detail;
-    };
-    window.addEventListener('joystick-move', handler);
-    return () => window.removeEventListener('joystick-move', handler);
-  }, []);
-
-  // Keyboard controls for desktop (works in both modes)
+  // Keyboard controls for desktop
   useEffect(() => {
     const keys = new Set<string>();
 
@@ -56,7 +47,7 @@ export default function GameLoopRunner() {
     };
   }, []);
 
-  // Touch handling — behavior depends on control scheme
+  // Touch handling — tap-to-steer with gradient steering + inverse flap strength
   useEffect(() => {
     const handler = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
@@ -71,42 +62,37 @@ export default function GameLoopRunner() {
         return;
       }
 
-      if (state.controlScheme === 'tap-steer') {
-        // Tap-steer: gradient steering + inverse flap strength
-        // Center of screen = no turn, full flap
-        // Edge of screen = max turn, minimal flap
-        const touch = e.touches[0];
-        const w = window.innerWidth;
-        const x = touch.clientX;
-        const center = w / 2;
+      // Tap-steer: gradient steering + inverse flap strength
+      // Center of screen = no turn, full flap
+      // Edge of screen = max turn, minimal flap
+      const touch = e.touches[0];
+      const w = window.innerWidth;
+      const x = touch.clientX;
+      const center = w / 2;
 
-        // -1 (left edge) to +1 (right edge)
-        const normalized = (x - center) / center;
-        // How far from center (0 = center, 1 = edge)
-        const edgeness = Math.abs(normalized);
+      // -1 (left edge) to +1 (right edge)
+      const normalized = (x - center) / center;
+      // How far from center (0 = center, 1 = edge)
+      const edgeness = Math.abs(normalized);
 
-        // Steering: gradient from 0 at center to full at edges
-        // Negative = turn right, positive = turn left (camera-behind perspective)
-        joystickXRef.current = -normalized;
+      // Steering: gradient from 0 at center to full at edges
+      // Negative = turn right, positive = turn left (camera-behind perspective)
+      joystickXRef.current = -normalized;
 
-        // Flap strength: 1.0 at center, 0.25 at edges
-        useGameStore.setState({ flapStrength: 1.0 - edgeness * 0.75 });
+      // Flap strength: 1.0 at center, 0.25 at edges
+      useGameStore.setState({ flapStrength: 1.0 - edgeness * 0.75 });
 
-        // Clear previous timer
-        if (tapSteerTimerRef.current) clearTimeout(tapSteerTimerRef.current);
+      // Clear previous timer
+      if (tapSteerTimerRef.current) clearTimeout(tapSteerTimerRef.current);
 
-        // Reset steering after a short duration
-        tapSteerTimerRef.current = setTimeout(() => {
-          joystickXRef.current = 0;
-          tapSteerTimerRef.current = null;
-        }, 300);
+      // Reset steering after a short duration
+      tapSteerTimerRef.current = setTimeout(() => {
+        joystickXRef.current = 0;
+        tapSteerTimerRef.current = null;
+      }, 300);
 
-        // Flap
-        state.flap();
-      } else {
-        // Buttons mode: tap canvas just flaps
-        state.flap();
-      }
+      // Flap
+      state.flap();
     };
 
     window.addEventListener('touchstart', handler);

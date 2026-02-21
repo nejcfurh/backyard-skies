@@ -17,6 +17,7 @@ import {
   DISTANCE_PER_UNIT,
 } from '@/utils/constants';
 import { isSafeFeederPosition } from '@/utils/chunkLayout';
+import { audioManager } from '@/lib/audioManager';
 
 interface GameStore {
   // Game state
@@ -24,7 +25,6 @@ interface GameStore {
   selectedSpecies: BirdSpeciesId;
   isPaused: boolean;
   playerName: string;
-  controlScheme: 'buttons' | 'tap-steer';
   deathReason: DeathReason;
 
   // Player resources
@@ -61,6 +61,13 @@ interface GameStore {
   // Leaderboard
   leaderboard: LeaderboardEntry[];
 
+  // Audio
+  isMuted: boolean;
+
+  // Score breakdown tracking
+  eagleDodges: number;
+  feedingScore: number;
+
   // Actions
   setGameState: (state: GameState) => void;
   selectSpecies: (species: BirdSpeciesId) => void;
@@ -68,6 +75,7 @@ interface GameStore {
   pauseGame: () => void;
   resumeGame: () => void;
   gameOver: (reason?: DeathReason) => void;
+  finalizeDeath: () => void;
 
   // Player actions
   flap: () => void;
@@ -103,7 +111,9 @@ interface GameStore {
 
   // Player profile
   setPlayerName: (name: string) => void;
-  setControlScheme: (scheme: 'buttons' | 'tap-steer') => void;
+
+  // Audio
+  setMuted: (muted: boolean) => void;
 
   // Leaderboard
   loadLeaderboard: () => void;
@@ -185,12 +195,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     typeof window !== 'undefined'
       ? localStorage.getItem('backyard-skies-name') || ''
       : '',
-  controlScheme:
-    (typeof window !== 'undefined'
-      ? (localStorage.getItem('backyard-skies-controls') as
-          | 'buttons'
-          | 'tap-steer')
-      : null) || 'tap-steer',
   deathReason: null,
 
   food: 100,
@@ -221,13 +225,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
   perchTime: 0,
 
   leaderboard: [],
+  isMuted:
+    typeof window !== 'undefined'
+      ? localStorage.getItem('backyard-skies-muted') === 'true'
+      : false,
+  eagleDodges: 0,
+  feedingScore: 0,
+
+  // Initialize audio mute state from stored preference
+  ...(typeof window !== 'undefined' && localStorage.getItem('backyard-skies-muted') === 'true'
+    ? (() => { audioManager.setMuted(true); return {}; })()
+    : {}),
 
   // State transitions
-  setGameState: state => set({ gameState: state }),
+  setGameState: state => {
+    audioManager.stopAllLoops();
+    set({ gameState: state });
+  },
 
   selectSpecies: species => set({ selectedSpecies: species }),
 
   startGame: () => {
+    audioManager.stopAllLoops();
     const species = BIRD_SPECIES[get().selectedSpecies];
     set({
       gameState: 'flight',
@@ -255,15 +274,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
       feeders: generateFeeders(),
       isPaused: false,
       deathReason: null,
+      eagleDodges: 0,
+      feedingScore: 0,
     });
   },
 
-  pauseGame: () => set({ isPaused: true }),
+  pauseGame: () => {
+    audioManager.stopAllLoops();
+    set({ isPaused: true });
+  },
   resumeGame: () => set({ isPaused: false }),
 
   gameOver: reason => {
+    set({ gameState: 'dying', deathReason: reason || null });
+    audioManager.stopAllLoops();
+    audioManager.play('death');
+  },
+
+  finalizeDeath: () => {
     const { score, distance, selectedSpecies } = get();
-    set({ gameState: 'game-over', deathReason: reason || null });
+    set({ gameState: 'game-over' });
     // Auto-save anonymous entry
     const leaderboard = loadLeaderboardFromStorage();
     leaderboard.push({
@@ -291,6 +321,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (flapCooldown > 0 || stamina <= 0) return;
     if (gameState !== 'flight') return;
     set({ isFlapping: true, flapCooldown: 0.15 });
+    audioManager.play('flap', { rate: 0.9 + Math.random() * 0.2 });
     if (eagleDodgeWindow > 0) {
       set({ eagleDodgeTaps: eagleDodgeTaps + 1 });
     }
@@ -356,8 +387,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       eagleDodgeWindow: 0,
       eagleAltitudeHunt: false,
       eagleTimer: 30 + Math.random() * 60,
+      eagleDodges: get().eagleDodges + 1,
     });
     get().addScore(SCORE_EAGLE_DODGE_BONUS);
+    audioManager.play('dodge');
   },
 
   // Feeders
@@ -391,11 +424,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       rotation: perchRotation,
       velocity: [0, 0, 0],
     });
+    audioManager.stopLoop('wind');
+    const soundName = feeder.type === 'feeder' ? 'eat' : 'drink';
+    audioManager.play(soundName, { loop: true, volume: 0.15 });
   },
 
   flyAway: () => {
     const { activeFeeder, position, feeders } = get();
     if (!activeFeeder) return;
+    audioManager.stopLoop('eat');
+    audioManager.stopLoop('drink');
     const bonus =
       activeFeeder.type === 'feeder' ? SCORE_FEED_BONUS : SCORE_DRINK_BONUS;
     // Lock this feeder for 60 seconds (predator assumed nearby)
@@ -415,6 +453,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       velocity: [0, 3, 0],
     });
     get().addScore(bonus);
+    set({ feedingScore: get().feedingScore + bonus });
   },
 
   setFeederCooldown: time => set({ feederCooldown: time }),
@@ -444,9 +483,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ playerName: name });
   },
 
-  setControlScheme: scheme => {
-    localStorage.setItem('backyard-skies-controls', scheme);
-    set({ controlScheme: scheme });
+  // Audio
+  setMuted: (muted) => {
+    localStorage.setItem('backyard-skies-muted', String(muted));
+    set({ isMuted: muted });
+    audioManager.setMuted(muted);
   },
 
   // Leaderboard

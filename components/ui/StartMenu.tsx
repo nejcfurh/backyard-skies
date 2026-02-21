@@ -28,16 +28,19 @@ export default function StartMenu() {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-between px-8 pb-10">
         {/* Title area */}
-        <div className="flex flex-col items-center mt-10">
-          <div className="text-7xl font-black italic font-serif text-white tracking-tighter leading-none text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+        <div className="flex flex-col items-center mt-5">
+          <div className="text-7xl font-black italic font-serif text-white tracking-tighter leading-none text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] mb-2">
             Backyard Skies
+          </div>
+          <div className="text-4xl font-black text-white/80 tracking-tighter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] font-geist-sans mb-4">
+            Wings of Survival
           </div>
         </div>
 
         {/* Bird of the Day */}
         <Link
           href="https://www.onebirdaday.com"
-          className="mt-6 flex items-center bg-green-900/50 backdrop-blur-xl rounded-full py-1.5 px-3"
+          className="mt-4 flex items-center bg-green-900/50 backdrop-blur-xl rounded-full py-1.5 px-3"
         >
           <div>
             <p className="text-lg flex items-center gap-0.5 text-white/70 font-semibold uppercase tracking-wider text-center animate-pulse">
@@ -53,7 +56,7 @@ export default function StartMenu() {
               const hasProfile = localStorage.getItem('backyard-skies-name');
               setGameState(hasProfile ? 'species-select' : 'settings');
             }}
-            className="mt-10 mb-8 w-full py-[18px] px-6 rounded-2xl font-bold text-[17px] text-white bg-linear-to-br from-[#00AEEF] to-[#0077BB] shadow-[0_6px_30px_rgba(0,174,239,0.35)] border-none cursor-pointer flex items-center justify-center gap-2.5 transition-transform active:scale-[0.96]"
+            className="my-6 w-full py-[18px] px-6 rounded-2xl font-bold text-[17px] text-white bg-linear-to-br from-[#00AEEF] to-[#0077BB] shadow-[0_6px_30px_rgba(0,174,239,0.35)] border-none cursor-pointer flex items-center justify-center gap-2.5 transition-transform active:scale-[0.96]"
           >
             START FLYING
             <span className="text-xl">
@@ -63,7 +66,7 @@ export default function StartMenu() {
         </div>
 
         {/* Leaderboard */}
-        <div className="mb-10 w-full max-w-80 bg-black/40 backdrop-blur-xl rounded-[18px] py-4 px-[18px]">
+        <div className="mb-5 w-full max-w-80 bg-black/40 backdrop-blur-xl rounded-[18px] py-4 px-[18px]">
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
               <span>
@@ -135,7 +138,7 @@ export default function StartMenu() {
       {/* All Rankings */}
       {showRankings && (
         <div className="fixed inset-0 z-60 flex flex-col bg-[url('/menu-bg.jpg')] bg-no-repeat bg-center bg-cover bg-fixed">
-          <div className="flex flex-col h-full pt-20 px-6 pb-20">
+          <div className="flex flex-col h-full pt-6 px-6">
             {/* Header */}
             <div className="relative flex items-center justify-center mb-6">
               <button
@@ -150,7 +153,10 @@ export default function StartMenu() {
             </div>
 
             {/* Rankings list */}
-            <div className="flex-1 overflow-auto">
+            <div
+              style={{ scrollbarWidth: 'none' }}
+              className="flex-1 overflow-auto"
+            >
               {leaderboard.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {leaderboard.map((entry, i) => (

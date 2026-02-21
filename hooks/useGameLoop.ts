@@ -20,22 +20,56 @@ import {
   THREAT_METER_MAX,
 } from '@/utils/constants';
 import * as THREE from 'three';
+import { audioManager } from '@/lib/audioManager';
 
 export function useGameLoop(joystickXRef: MutableRefObject<number>) {
   const scoreAccumulator = useRef(0);
   const lastPosition = useRef(new THREE.Vector3());
   const feederRefreshTimer = useRef(0);
   const flapApplied = useRef(false);
+  const windStarted = useRef(false);
+  const eagleSoundPlayed = useRef(false);
 
   useFrame((_, delta) => {
     const state = useGameStore.getState();
-    if (state.isPaused) return;
+    if (state.isPaused) {
+      windStarted.current = false;
+      return;
+    }
+
+    // Reset wind flag when not in flight
+    if (state.gameState !== 'flight') {
+      windStarted.current = false;
+    }
 
     const clamped = Math.min(delta, 0.05);
     const species = BIRD_SPECIES[state.selectedSpecies];
     const joystickX = joystickXRef.current;
 
     if (state.gameState === 'flight') {
+      // Start wind loop if not already playing
+      if (!windStarted.current) {
+        windStarted.current = true;
+        audioManager.play('wind', { loop: true, volume: 0.08 });
+      }
+
+      // Modulate wind volume based on speed
+      const speed = Math.sqrt(
+        state.velocity[0] * state.velocity[0] +
+        state.velocity[1] * state.velocity[1] +
+        state.velocity[2] * state.velocity[2]
+      );
+      audioManager.setWindVolume(Math.min(0.15, speed * 0.012));
+
+      // Play eagle screech when threat appears
+      if (state.threatType === 'eagle' && !eagleSoundPlayed.current) {
+        eagleSoundPlayed.current = true;
+        audioManager.play('eagle', { volume: 0.2 });
+      }
+      if (state.threatType !== 'eagle') {
+        eagleSoundPlayed.current = false;
+      }
+
       updateFlight(
         state,
         species,

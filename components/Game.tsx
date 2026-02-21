@@ -12,6 +12,7 @@ import ThreatWarning from '@/components/ui/ThreatWarning';
 import VirtualJoystick from '@/components/ui/VirtualJoystick';
 import BottomNav from '@/components/ui/BottomNav';
 import FeederDirectionHint from '@/components/ui/FeederDirectionHint';
+import DeathTransition from '@/components/ui/DeathTransition';
 
 const GameCanvas = dynamic(() => import('@/components/GameCanvas'), {
   ssr: false,
@@ -65,7 +66,8 @@ export default function Game() {
   const isPlaying =
     gameState === 'flight' ||
     gameState === 'feeding' ||
-    gameState === 'drinking';
+    gameState === 'drinking' ||
+    gameState === 'dying';
 
   return (
     <div
@@ -100,6 +102,8 @@ export default function Game() {
           <FeederDirectionHint />
         </>
       )}
+
+      {gameState === 'dying' && <DeathTransition />}
     </div>
   );
 }

@@ -35,7 +35,7 @@ export interface BirdColors {
   accent?: string;
 }
 
-export type GameState = 'menu' | 'species-select' | 'settings' | 'flight' | 'feeding' | 'drinking' | 'game-over';
+export type GameState = 'menu' | 'species-select' | 'settings' | 'flight' | 'feeding' | 'drinking' | 'dying' | 'game-over';
 
 export type ThreatType = 'eagle' | 'cat' | null;
 

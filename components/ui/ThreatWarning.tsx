@@ -24,25 +24,21 @@ export default function ThreatWarning() {
 
   return (
     <>
-      {/* Top warning bar */}
-      {isEagle && (
-        <div
-          className="fixed top-0 left-0 right-0 z-30 py-2.5 text-center text-[13px] font-bold text-white animate-[pulse_0.8s_ease-in-out_infinite]"
-          style={{
-            background: isDodgePhase
-              ? 'linear-gradient(90deg, #B71C1C, #FF3D00, #B71C1C)'
-              : 'linear-gradient(90deg, #E65100, #FF9800, #E65100)',
-          }}
-        >
-          {isDodgePhase ? '⚠ PREDATOR DETECTED' : '⚠ THREAT APPROACHING'}
+      {/* Predator detected — centered red text */}
+      {isEagle && !isDodgePhase && !eagleAltitudeHunt && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <span
+            className="text-2xl font-black uppercase tracking-widest animate-[pulse_0.8s_ease-in-out_infinite]"
+            style={{
+              color: '#FF3D00',
+              textShadow: '0 0 20px rgba(255,61,0,0.6), 0 2px 8px rgba(0,0,0,0.5)',
+            }}
+          >
+            PREDATOR DETECTED
+          </span>
         </div>
       )}
 
-      {isCat && isPerched && (
-        <div className="fixed top-0 left-0 right-0 z-30 py-2.5 text-center text-[13px] font-bold text-white bg-linear-to-r from-[#B71C1C] via-[#FF3D00] to-[#B71C1C] animate-[pulse_0.8s_ease-in-out_infinite]">
-          ⚠ PREDATOR DETECTED
-        </div>
-      )}
 
       {/* Screen vignette */}
       {(isDodgePhase || eagleAltitudeHunt || (isCat && isPerched)) && (
@@ -88,8 +84,17 @@ export default function ThreatWarning() {
       {isCat && isPerched && (
         <div
           onPointerDown={(e) => { e.stopPropagation(); flyAway(); }}
-          className="fixed inset-0 z-30 flex items-end justify-center pb-[140px] pointer-events-auto cursor-pointer"
+          className="fixed inset-0 z-30 flex flex-col items-center justify-end pb-[140px] pointer-events-auto cursor-pointer"
         >
+          <span
+            className="text-2xl font-black uppercase tracking-widest animate-[pulse_0.8s_ease-in-out_infinite] mb-4"
+            style={{
+              color: '#FF3D00',
+              textShadow: '0 0 20px rgba(255,61,0,0.6), 0 2px 8px rgba(0,0,0,0.5)',
+            }}
+          >
+            PREDATOR DETECTED
+          </span>
           <div className="bg-[rgba(183,28,28,0.85)] backdrop-blur-[10px] rounded-[18px] py-4 px-8 flex flex-col items-center gap-1 border border-[rgba(255,61,0,0.3)] animate-[bounce-y_0.6s_ease-in-out_infinite]">
             <span className="text-xs text-[rgba(255,200,200,0.8)] font-bold">ESCAPE!</span>
             <span className="text-[22px] font-black text-white">FLY AWAY</span>

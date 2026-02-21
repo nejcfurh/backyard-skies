@@ -10,6 +10,10 @@ const CHASE_HEIGHT = 4;
 const LOOK_AHEAD = 8;
 const LERP_SPEED = 3;
 
+// Death camera
+const DEATH_CHASE_DISTANCE = 18;
+const DEATH_CHASE_HEIGHT = 8;
+
 // Reusable Vector3 — avoids allocations in the render loop
 const _targetPos = new THREE.Vector3();
 const _targetLook = new THREE.Vector3();
@@ -17,6 +21,7 @@ const _targetLook = new THREE.Vector3();
 export default function ThirdPersonCamera() {
   const cameraTarget = useRef(new THREE.Vector3());
   const cameraPosition = useRef(new THREE.Vector3(0, 15, -10));
+  const dyingTimer = useRef(0);
   const { camera } = useThree();
 
   useFrame((_, delta) => {
@@ -26,7 +31,31 @@ export default function ThirdPersonCamera() {
     const sinR = Math.sin(rotation);
     const cosR = Math.cos(rotation);
 
-    if ((gameState === 'feeding' || gameState === 'drinking') && activeFeeder) {
+    // Reset dying timer when returning to flight
+    if (gameState === 'flight' && dyingTimer.current > 0) {
+      dyingTimer.current = 0;
+    }
+
+    if (gameState === 'dying') {
+      dyingTimer.current += dt;
+      const t = Math.min(dyingTimer.current / 2, 1); // 0 to 1 over 2 seconds
+
+      // Interpolate chase distance and height
+      const dist = CHASE_DISTANCE + (DEATH_CHASE_DISTANCE - CHASE_DISTANCE) * t;
+      const height = CHASE_HEIGHT + (DEATH_CHASE_HEIGHT - CHASE_HEIGHT) * t;
+
+      _targetPos.set(
+        position[0] - sinR * dist,
+        position[1] + height,
+        position[2] - cosR * dist
+      );
+      // Slower lerp for cinematic feel
+      cameraPosition.current.lerp(_targetPos, LERP_SPEED * dt * 0.4);
+
+      // Look at the falling bird
+      _targetLook.set(position[0], position[1], position[2]);
+      cameraTarget.current.lerp(_targetLook, LERP_SPEED * dt * 0.6);
+    } else if ((gameState === 'feeding' || gameState === 'drinking') && activeFeeder) {
       // Fixed 45-degree diagonal view — avoids clipping through feeder planes
       const fx = activeFeeder.position[0];
       const fy = activeFeeder.position[1];

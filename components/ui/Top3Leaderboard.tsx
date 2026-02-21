@@ -10,7 +10,7 @@ const Top3Leaderboard = ({
   handleViewAllRankings: () => void;
 }) => {
   return (
-    <div className="mb-5 w-full max-w-80 bg-black/40 backdrop-blur-xl rounded-[18px] py-4 px-[18px]">
+    <div className="mb-5 w-full min-h-[200px] max-w-80 bg-black/40 backdrop-blur-xl rounded-[18px] py-4 px-[18px]">
       <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
           <span>
@@ -51,17 +51,19 @@ const Top3Leaderboard = ({
           ))}
         </div>
       ) : (
-        <p className="text-[13px] text-white/20 text-center py-4">
+        <p className="text-base mt-10 text-white/50 text-center py-4">
           No flights yet. Be the first!
         </p>
       )}
 
-      <button
-        onClick={handleViewAllRankings}
-        className="w-full mt-3.5 text-center text-[11px] text-[#00AEEF] font-semibold bg-transparent border-none cursor-pointer"
-      >
-        VIEW ALL RANKINGS
-      </button>
+      {topPlayers.length > 0 && (
+        <button
+          onClick={handleViewAllRankings}
+          className="w-full mt-3.5 text-center text-[11px] text-[#00AEEF] font-semibold bg-transparent border-none cursor-pointer"
+        >
+          VIEW ALL RANKINGS
+        </button>
+      )}
     </div>
   );
 };

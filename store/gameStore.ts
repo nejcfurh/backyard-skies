@@ -136,41 +136,38 @@ function generateFeeders(centerX = 0, centerZ = 0): FeederData[] {
     return true;
   }
 
-  function safePosition(): [number, number, number] {
-    for (let attempt = 0; attempt < 40; attempt++) {
-      const x = centerX + (Math.random() - 0.5) * spread;
-      const z = centerZ + (Math.random() - 0.5) * spread;
+  function safePosition(): [number, number, number] | null {
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const s = attempt < 50 ? spread : spread * 1.5;
+      const x = centerX + (Math.random() - 0.5) * s;
+      const z = centerZ + (Math.random() - 0.5) * s;
       if (isSafeFeederPosition(x, z) && isFarEnough(x, z)) return [x, 0, z];
     }
-    // Fallback: place in front-yard band, still check spacing
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const x = centerX + (Math.random() - 0.5) * spread;
-      const chunkZ = Math.floor(x / 60) * 60;
-      const z = chunkZ + (Math.random() > 0.5 ? 4.5 : -4.5);
-      if (isFarEnough(x, z)) return [x, 0, z];
-    }
-    // Last resort fallback
-    const x = centerX + (Math.random() - 0.5) * spread;
-    const chunkZ = Math.floor(x / 60) * 60;
-    return [x, 0, chunkZ + (Math.random() > 0.5 ? 4.5 : -4.5)];
+    return null;
   }
 
   for (let i = 0; i < FEEDER_COUNT; i++) {
-    feeders.push({
-      id: feederIdCounter++,
-      position: safePosition(),
-      hasCat: Math.random() > 0.6,
-      type: 'feeder',
-    });
+    const pos = safePosition();
+    if (pos) {
+      feeders.push({
+        id: feederIdCounter++,
+        position: pos,
+        hasCat: Math.random() > 0.6,
+        type: 'feeder',
+      });
+    }
   }
 
   for (let i = 0; i < BIRDBATH_COUNT; i++) {
-    feeders.push({
-      id: feederIdCounter++,
-      position: safePosition(),
-      hasCat: Math.random() > 0.7,
-      type: 'birdbath',
-    });
+    const pos = safePosition();
+    if (pos) {
+      feeders.push({
+        id: feederIdCounter++,
+        position: pos,
+        hasCat: Math.random() > 0.7,
+        type: 'birdbath',
+      });
+    }
   }
 
   return feeders;

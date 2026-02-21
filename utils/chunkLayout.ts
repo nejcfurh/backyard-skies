@@ -1,8 +1,12 @@
 // Shared chunk layout utilities — used by SuburbanWorld and FeederSpawner
 // to keep house positions and road zones consistent.
+//
+// The RNG call sequence MUST exactly match generateChunkData in SuburbanWorld.tsx.
+// Any change to SuburbanWorld's generation order requires updating this file.
 
-const CHUNK_SIZE = 60;
-const HOUSES_PER_CHUNK = 3;
+const CHUNK_SIZE = 40;
+const HOUSES_PER_CHUNK = 3.5; // loop runs for i=0,1,2,3 → 4 houses
+const TREES_PER_CHUNK = 6;
 
 function seededRandom(seed: number) {
   let s = seed;
@@ -19,26 +23,27 @@ interface HouseRect {
   hd: number; // half-depth (includes fence buffer)
 }
 
-/**
- * Returns world-space bounding rectangles for all houses in a given chunk,
- * plus whether the chunk has vertical roads.
- * The RNG call sequence MUST match generateChunkData in SuburbanWorld.tsx.
- */
-export function getChunkHouses(cx: number, cz: number): { houses: HouseRect[]; hasRoadZ: boolean } {
+interface TreePos {
+  x: number; // world x
+  z: number; // world z
+}
+
+export function getChunkHouses(cx: number, cz: number): {
+  houses: HouseRect[];
+  trees: TreePos[];
+  hasRoadZ: boolean;
+} {
   const seed = cx * 73856093 + cz * 19349663;
   const rng = seededRandom(Math.abs(seed) + 1);
   const ox = cx * CHUNK_SIZE;
   const oz = cz * CHUNK_SIZE;
 
-  // Skip grass patches (5 patches × 6 rng calls each)
-  for (let i = 0; i < 5; i++) {
-    rng(); rng(); rng(); rng(); rng(); rng();
-  }
+  // Skip grass patches (5 patches × 6 rng calls each = 30)
+  for (let i = 0; i < 30; i++) rng();
 
-  // Skip mow stripes (4 stripes × 6 rng calls each)
-  for (let i = 0; i < 4; i++) {
-    rng(); rng(); rng(); rng(); rng(); rng();
-  }
+  // Skip mow stripes (4 stripes × 7 rng calls each = 28)
+  // Each stripe: x, z, w, h, rot(2 calls), color = 7
+  for (let i = 0; i < 28; i++) rng();
 
   const hasRoadZ = Math.abs(cx) % 2 === 0;
   const hasRoadX = true;
@@ -47,6 +52,8 @@ export function getChunkHouses(cx: number, cz: number): { houses: HouseRect[]; h
 
   if (hasRoadX && hasRoadZ) {
     // Intersection: 4 quadrant corners
+    // Per house: x, z, w, h, d, roofColor, wallColor, fenceColor, hasPatio = 9 calls
+    // rot is deterministic (NO rng call)
     for (let qi = 0; qi < 4; qi++) {
       const sx = qi < 2 ? 1 : -1;
       const sz = qi % 2 === 0 ? 1 : -1;
@@ -57,60 +64,78 @@ export function getChunkHouses(cx: number, cz: number): { houses: HouseRect[]; h
       const d = 3.5 + rng() * 2;
       rng(); // roofColor
       rng(); // wallColor
-      rng(); // rot (unused — computed from sz)
+      // rot: sz > 0 ? Math.PI : 0 — deterministic, NO rng call
       rng(); // fenceColor
       rng(); // hasPatio
       houses.push({ x: ox + hx, z: oz + hz, hw: (w + 4) / 2, hd: (d + 6) / 2 });
     }
   } else {
+    // Non-intersection: HOUSES_PER_CHUNK (3.5 → loop runs 4 times: i=0,1,2,3)
     for (let i = 0; i < HOUSES_PER_CHUNK; i++) {
-      const baseX = ((i / HOUSES_PER_CHUNK) - 0.5) * CHUNK_SIZE * 0.8 + (rng() - 0.5) * 4;
       const side = i % 2 === 0 ? 1 : -1;
+      const baseX =
+        (i / HOUSES_PER_CHUNK - 0.5) * CHUNK_SIZE * 0.8 + (rng() - 0.5) * 4;
       const hz = side * (6 + rng() * 5);
       const w = 3.5 + rng() * 2;
       rng(); // h
       const d = 3.5 + rng() * 2;
       rng(); // roofColor
       rng(); // wallColor
-      rng(); // rot
+      // rot: side > 0 ? Math.PI : 0 — deterministic, NO rng call
       rng(); // fenceColor
       rng(); // hasPatio
       houses.push({ x: ox + baseX, z: oz + hz, hw: (w + 4) / 2, hd: (d + 6) / 2 });
     }
   }
 
-  return { houses, hasRoadZ };
+  // Trees: 6 × 4 rng calls (x, z, height, type)
+  const trees: TreePos[] = [];
+  for (let i = 0; i < TREES_PER_CHUNK; i++) {
+    const tx = (rng() - 0.5) * CHUNK_SIZE;
+    const tz = (rng() - 0.5) * CHUNK_SIZE;
+    rng(); // height
+    rng(); // type
+    trees.push({ x: ox + tx, z: oz + tz });
+  }
+
+  return { houses, trees, hasRoadZ };
 }
 
 /**
- * Checks if a world position collides with any house or road in its chunk.
+ * Checks if a world position collides with any house, road, or tree.
  * Returns true if the position is SAFE (no collision).
  */
 export function isSafeFeederPosition(wx: number, wz: number): boolean {
   const cx = Math.floor(wx / CHUNK_SIZE);
   const cz = Math.floor(wz / CHUNK_SIZE);
 
-  // Check the chunk the point is in plus adjacent chunks (houses near edges)
   for (let dx = -1; dx <= 1; dx++) {
     for (let dz = -1; dz <= 1; dz++) {
-      const { houses, hasRoadZ } = getChunkHouses(cx + dx, cz + dz);
+      const { houses, trees, hasRoadZ } = getChunkHouses(cx + dx, cz + dz);
 
-      // Check house collision
+      // House collision
       for (const h of houses) {
         if (Math.abs(wx - h.x) < h.hw && Math.abs(wz - h.z) < h.hd) {
           return false;
         }
       }
 
-      // Check road collision for this neighbor chunk
+      // Tree collision (~2 unit radius for canopy)
+      for (const t of trees) {
+        const tdx = wx - t.x;
+        const tdz = wz - t.z;
+        if (tdx * tdx + tdz * tdz < 4) {
+          return false;
+        }
+      }
+
+      // Road collision
       const neighborOx = (cx + dx) * CHUNK_SIZE;
       const neighborOz = (cz + dz) * CHUNK_SIZE;
 
-      // Horizontal road (every chunk): z within ±3.5 of chunk center
       const localZ = wz - neighborOz;
       if (Math.abs(localZ) < 3.5) return false;
 
-      // Vertical road (if present): x within ±3.5 of chunk center
       if (hasRoadZ) {
         const localX = wx - neighborOx;
         if (Math.abs(localX) < 3.5) return false;

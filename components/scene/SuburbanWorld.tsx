@@ -4,10 +4,10 @@ import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameStore } from '@/store/gameStore';
 
-const CHUNK_SIZE = 60;
-const RENDER_DISTANCE = 1; // CHUNKS IN EACH DIRECTION (3×3 = 9 CHUNKS)
-const HOUSES_PER_CHUNK = 3;
-const TREES_PER_CHUNK = 3;
+const CHUNK_SIZE = 40;
+const RENDER_DISTANCE = 1.5; // CHUNKS IN EACH DIRECTION (3×3 = 9 CHUNKS)
+const HOUSES_PER_CHUNK = 3.5;
+const TREES_PER_CHUNK = 6;
 
 // SEEDED RANDOM FOR DETERMINISTIC CHUNK GENERATION
 function seededRandom(seed: number) {

@@ -9,8 +9,9 @@ import Feeder from './Feeder';
 
 const SPAWN_DISTANCE = 50;
 const DESPAWN_DISTANCE = 80;
-const MIN_SPACING = 20;
-const SPAWN_INTERVAL = 2; // SECONDS
+const MIN_SPACING = 15;
+const TARGET_NEARBY = 4;
+const SPAWN_COOLDOWN = 0.5; // SECONDS — ONLY USED ONCE AREA IS FULLY POPULATED
 
 function seededRand(seed: number) {
   let s = Math.abs(seed) || 1;
@@ -51,10 +52,6 @@ export default function FeederSpawner() {
       return;
     }
 
-    spawnTimerRef.current += delta;
-    if (spawnTimerRef.current < SPAWN_INTERVAL) return;
-    spawnTimerRef.current = 0;
-
     const px = position[0];
     const pz = position[2];
 
@@ -72,41 +69,46 @@ export default function FeederSpawner() {
       return Math.sqrt(dx * dx + dz * dz) < SPAWN_DISTANCE;
     }).length;
 
+    // SKIP SPAWNING ONLY IF AREA IS FULLY POPULATED AND COOLDOWN HASN'T ELAPSED
+    spawnTimerRef.current += delta;
+    if (nearbyCount >= TARGET_NEARBY && spawnTimerRef.current < SPAWN_COOLDOWN) {
+      if (kept.length !== feeders.length) setFeeders(kept);
+      return;
+    }
+    spawnTimerRef.current = 0;
+
     let updated = kept;
+    const toSpawn = TARGET_NEARBY - nearbyCount;
 
-    // SPAWN NEW ONES IF TOO FEW
-    if (nearbyCount < 2) {
+    if (toSpawn > 0) {
       const rand = seededRand(nextIdRef.current + Date.now());
-      // TRY SEVERAL CANDIDATE POSITIONS TO FIND ONE THAT AVOIDES HOUSES/ROADS
-      let placed = false;
-      for (let attempt = 0; attempt < 8 && !placed; attempt++) {
-        const angle = rand() * Math.PI * 2;
-        const dist = 20 + rand() * 30;
-        const nx = px + Math.sin(angle) * dist;
-        const nz = pz + Math.cos(angle) * dist;
 
-        // CHECK SPACING FROM EXISTING FEEDERS
-        const tooClose = kept.some(f => {
-          const dx = f.position[0] - nx;
-          const dz = f.position[2] - nz;
-          return Math.sqrt(dx * dx + dz * dz) < MIN_SPACING;
-        });
+      for (let s = 0; s < toSpawn; s++) {
+        let placed = false;
+        for (let attempt = 0; attempt < 20 && !placed; attempt++) {
+          const angle = rand() * Math.PI * 2;
+          const dist = 15 + rand() * 35;
+          const nx = px + Math.sin(angle) * dist;
+          const nz = pz + Math.cos(angle) * dist;
 
-        if (tooClose) continue;
+          const tooClose = updated.some(f => {
+            const dx = f.position[0] - nx;
+            const dz = f.position[2] - nz;
+            return Math.sqrt(dx * dx + dz * dz) < MIN_SPACING;
+          });
 
-        // CHECK HOUSE/ROAD COLLISION
-        if (!isSafeFeederPosition(nx, nz)) continue;
+          if (tooClose) continue;
+          if (!isSafeFeederPosition(nx, nz)) continue;
 
-        const isBath = rand() > 0.55;
-        const newFeeder: FeederData = {
-          id: nextIdRef.current++,
-          position: [nx, 0, nz],
-          hasCat: rand() > 0.65,
-          type: isBath ? 'birdbath' : 'feeder',
-        };
-
-        updated = [...kept, newFeeder];
-        placed = true;
+          const isBath = rand() > 0.55;
+          updated = [...updated, {
+            id: nextIdRef.current++,
+            position: [nx, 0, nz] as [number, number, number],
+            hasCat: rand() > 0.65,
+            type: isBath ? 'birdbath' : 'feeder',
+          }];
+          placed = true;
+        }
       }
     }
 

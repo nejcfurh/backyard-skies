@@ -422,8 +422,8 @@ function GrassField({
     const pos: { x: number; z: number; rot: number; s: number }[] = [];
     const half = CHUNK_SIZE / 2;
 
-    for (let gx = -half; gx < half; gx += 0.25) {
-      for (let gz = -half; gz < half; gz += 0.25) {
+    for (let gx = -half; gx < half; gx += 0.55) {
+      for (let gz = -half; gz < half; gz += 0.55) {
         // Skip horizontal road + sidewalks
         if (hasRoadX && Math.abs(gz) < 3.5) continue;
         // Skip vertical road + sidewalks
@@ -492,6 +492,23 @@ function House({ x, z, rot, modelIndex }: HouseData) {
   const url = HOUSE_MODELS[modelIndex % HOUSE_MODELS.length];
   const { scene } = useGLTF(url);
   const clone = useMemo(() => scene.clone(true), [scene]);
+
+  // Dispose cloned geometry/materials on unmount to prevent GPU memory leaks
+  useEffect(() => {
+    return () => {
+      clone.traverse(child => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry?.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material?.dispose();
+          }
+        }
+      });
+    };
+  }, [clone]);
 
   return (
     <group position={[x, 0, z]} rotation={[0, rot, 0]} scale={6.3}>

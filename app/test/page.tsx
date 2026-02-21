@@ -18,7 +18,7 @@ export default function TestPage() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#1a1a2e' }}>
-      {/* Controls panel */}
+      {/* CONTROLS */}
       <div
         style={{
           position: 'absolute',
@@ -157,7 +157,7 @@ export default function TestPage() {
         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
           Drag to orbit / Scroll to zoom
           <br />
-          Edit Feeder.tsx — hot reload updates here
+          Edit Feeder.tsx — to see changes live
         </span>
       </div>
 
@@ -175,7 +175,7 @@ export default function TestPage() {
         />
         <hemisphereLight args={['#87CEEB', '#4A7C59', 0.4]} />
 
-        {/* Ground plane */}
+        {/* GROUND */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
           <planeGeometry args={[20, 20]} />
           <meshStandardMaterial color="#4A8A50" roughness={0.92} />
@@ -196,18 +196,18 @@ export default function TestPage() {
           />
         )}
 
-        {/* Feeder — centered at origin */}
+        {/* FEEDER - CENTERED AT ORIGIN */}
         {showFeeder && (
           <group position={[-2, 0, 0]}>
             <BirdbuddyFeeder />
-            {/* Height markers */}
+            {/* HEIGHT MARKERS */}
             <HeightMarker y={1.6} />
             <HeightMarker y={1.85} color="#ff6b6b" />
             <HeightMarker y={2.2} color="#ffd43b" />
           </group>
         )}
 
-        {/* Birdbath — offset to the right */}
+        {/* BIRDBATH - OFFSET TO THE RIGHT */}
         {showBath && (
           <group position={[2, 0, 0]}>
             <BirdbuddyBath />
@@ -216,7 +216,7 @@ export default function TestPage() {
           </group>
         )}
 
-        {/* Eagle — OBJ model (by Robert Mirabelle [CC-BY] via Poly Pizza) */}
+        {/* EAGLE - OBJ MODEL (BY ROBERT MIRABELLE [CC-BY] VIA POLY PIZZA) */}
         {showEagle && (
           <ObjMtlModel
             baseUrl="/models/myeagle/wind_eagle"
@@ -226,7 +226,7 @@ export default function TestPage() {
           />
         )}
 
-        {/* Bird GLTF model */}
+        {/* BIRD GLTF MODEL */}
         {showBird && (
           <Suspense fallback={null}>
             <group position={[0, 0, 3]}>
@@ -235,7 +235,7 @@ export default function TestPage() {
           </Suspense>
         )}
 
-        {/* Cat OBJ/MTL model — center, scaled to fit */}
+        {/* CAT OBJ/MTL MODEL - CENTER, SCALED TO FIT */}
         {showCatModel && (
           <ObjMtlModel
             baseUrl="/models/mycat/model"
@@ -267,7 +267,7 @@ function HeightMarker({
 }) {
   return (
     <group position={[0, y, 0]}>
-      {/* Thin horizontal line */}
+      {/* THIN HORIZONTAL LINE */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.8, 0.82, 32]} />
         <meshBasicMaterial color={color} transparent opacity={0.5} />

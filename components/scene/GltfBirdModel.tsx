@@ -6,7 +6,7 @@ import { useGLTF, useTexture } from '@react-three/drei';
 import { BirdSpeciesId } from '@/types';
 import * as THREE from 'three';
 
-// Map species ID to texture file name
+// MAP SPECIES ID TO TEXTURE FILE NAME
 const SPECIES_TEXTURE: Record<BirdSpeciesId, string> = {
   cardinal: '/models/mybird/textures/lambert2_baseColor.png',
   tanager: '/models/mybird/textures/lambert2_baseColor-scarlet.png',
@@ -23,7 +23,7 @@ interface GltfBirdModelProps {
 
 const WING_THRESHOLD = 0.8;
 const FLAP_DURATION = 0.3;
-const FLAP_LIFT = 0.8; // max Y displacement at wingtip
+const FLAP_LIFT = 0.8; // MAX Y DISPLACEMENT AT WINGTIP
 
 export default function GltfBirdModel({
   isFlapping,
@@ -36,7 +36,7 @@ export default function GltfBirdModel({
     SPECIES_TEXTURE[speciesId] || SPECIES_TEXTURE.cardinal,
   );
 
-  // Deep clone including geometry buffers so vertex edits don't corrupt the cached original
+  // DEEP CLONE INCLUDING GEOMETRY BUFFERS SO VERTEX EDITS DON'T CORRUPT THE CACHED ORIGINAL
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse(child => {
@@ -47,7 +47,7 @@ export default function GltfBirdModel({
     return clone;
   }, [scene]);
 
-  // Apply species base color texture to all mesh materials
+  // APPLY SPECIES BASE COLOR TEXTURE TO ALL MESH MATERIALS
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
     speciesTexture.flipY = false;
@@ -57,7 +57,7 @@ export default function GltfBirdModel({
       if (child instanceof THREE.Mesh && child.material) {
         const mat = child.material as THREE.MeshStandardMaterial;
         mat.map = speciesTexture;
-        mat.color.set(1, 1, 1); // reset tint so texture shows true colors
+        mat.color.set(1, 1, 1); // RESET TINT SO TEXTURE SHOWS TRUE COLORS
         mat.needsUpdate = true;
       }
     });
@@ -88,7 +88,7 @@ export default function GltfBirdModel({
     if (!groupRef.current) return;
     initOriginals();
 
-    // Trigger new flap
+    // TRIGGER NEW FLAP
     if (isFlapping && !flapActive.current) {
       flapActive.current = true;
       flapTime.current = 0;
@@ -97,7 +97,7 @@ export default function GltfBirdModel({
     if (flapTime.current >= 0) {
       flapTime.current += delta;
       const progress = Math.min(flapTime.current / FLAP_DURATION, 1);
-      // Smooth up-down: sin gives 0→1→0 over the flap
+      // SMOOTH UP-DOWN: SIN GIVES 0→1→0 OVER THE FLAP
       const lift = Math.sin(progress * Math.PI) * FLAP_LIFT;
 
       applyWingLift(clonedScene, originalPositions.current, lift);
@@ -108,11 +108,11 @@ export default function GltfBirdModel({
         resetVertices(clonedScene, originalPositions.current);
       }
     } else if (isPerched) {
-      // Wings tucked down when perched
+      // WINGS TUCKED DOWN WHEN PERCHED
       flapActive.current = false;
       applyWingLift(clonedScene, originalPositions.current, -FLAP_LIFT);
     } else {
-      // Not flapping — keep wings in original model position
+      // NOT FLAPPING — KEEP WINGS IN ORIGINAL MODEL POSITION
       flapActive.current = false;
       resetVertices(clonedScene, originalPositions.current);
     }
@@ -125,7 +125,7 @@ export default function GltfBirdModel({
   );
 }
 
-// Simple Y-offset lift: wing vertices move up proportional to distance from wing root
+// SIMPLE Y-OFFSET LIFT: WING VERTICES MOVE UP PROPORTIONAL TO DISTANCE FROM WING ROOT
 function applyWingLift(
   scene: THREE.Object3D,
   originals: Map<THREE.BufferGeometry, Float32Array>,
@@ -142,9 +142,9 @@ function applyWingLift(
         const ox = orig[i];
 
         if (Math.abs(ox) > WING_THRESHOLD) {
-          // How far this vertex is from the wing root (0 at root, 1+ at tip)
+          // HOW FAR THIS VERTEX IS FROM THE WING ROOT (0 AT ROOT, 1+ AT TIP)
           const dist = Math.abs(ox) - WING_THRESHOLD;
-          // Y offset scales with distance — wingtip moves most
+          // Y OFFSET SCALES WITH DISTANCE — WINGTIP MOVES MOST
           arr[i + 1] = orig[i + 1] + lift * dist;
         }
       }
@@ -169,5 +169,5 @@ function resetVertices(
   });
 }
 
-// Preload all species textures
+// PRELOAD ALL SPECIES TEXTURES
 Object.values(SPECIES_TEXTURE).forEach(url => useTexture.preload(url));

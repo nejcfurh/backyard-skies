@@ -9,8 +9,8 @@ import Feeder from './Feeder';
 
 const SPAWN_DISTANCE = 50;
 const DESPAWN_DISTANCE = 80;
-const MIN_SPACING = 15;
-const SPAWN_INTERVAL = 2; // seconds
+const MIN_SPACING = 20;
+const SPAWN_INTERVAL = 2; // SECONDS
 
 function seededRand(seed: number) {
   let s = Math.abs(seed) || 1;
@@ -26,7 +26,7 @@ export default function FeederSpawner() {
   const spawnTimerRef = useRef(0);
   const initializedRef = useRef(false);
 
-  // Seed from store feeders on game start so they're visible immediately
+  // SEED FROM STORE FEEDERS ON GAME START SO THEY'RE VISIBLE IMMEDIATELY
   useEffect(() => {
     const unsub = useGameStore.subscribe((state, prev) => {
       if (state.gameState === 'flight' && prev.gameState !== 'flight') {
@@ -37,10 +37,14 @@ export default function FeederSpawner() {
   }, []);
 
   useFrame((_, delta) => {
-    const { position, gameState, feeders: storeFeeders } = useGameStore.getState();
+    const {
+      position,
+      gameState,
+      feeders: storeFeeders,
+    } = useGameStore.getState();
     if (gameState !== 'flight') return;
 
-    // On first frame of flight, seed visual feeders from store
+    // ON FIRST FRAME OF FLIGHT, SEED VISUAL FEEDERS FROM STORE
     if (!initializedRef.current) {
       initializedRef.current = true;
       setFeeders(storeFeeders);
@@ -54,15 +58,15 @@ export default function FeederSpawner() {
     const px = position[0];
     const pz = position[2];
 
-    // Remove distant feeders
-    const kept = feeders.filter((f) => {
+    // REMOVE DISTANT FEEDERS
+    const kept = feeders.filter(f => {
       const dx = f.position[0] - px;
       const dz = f.position[2] - pz;
       return Math.sqrt(dx * dx + dz * dz) < DESPAWN_DISTANCE;
     });
 
-    // Count nearby feeders
-    const nearbyCount = kept.filter((f) => {
+    // COUNT NEARBY FEEDERS
+    const nearbyCount = kept.filter(f => {
       const dx = f.position[0] - px;
       const dz = f.position[2] - pz;
       return Math.sqrt(dx * dx + dz * dz) < SPAWN_DISTANCE;
@@ -70,10 +74,10 @@ export default function FeederSpawner() {
 
     let updated = kept;
 
-    // Spawn new ones if too few
-    if (nearbyCount < 4) {
+    // SPAWN NEW ONES IF TOO FEW
+    if (nearbyCount < 2) {
       const rand = seededRand(nextIdRef.current + Date.now());
-      // Try several candidate positions to find one that avoids houses/roads
+      // TRY SEVERAL CANDIDATE POSITIONS TO FIND ONE THAT AVOIDES HOUSES/ROADS
       let placed = false;
       for (let attempt = 0; attempt < 8 && !placed; attempt++) {
         const angle = rand() * Math.PI * 2;
@@ -81,8 +85,8 @@ export default function FeederSpawner() {
         const nx = px + Math.sin(angle) * dist;
         const nz = pz + Math.cos(angle) * dist;
 
-        // Check spacing from existing feeders
-        const tooClose = kept.some((f) => {
+        // CHECK SPACING FROM EXISTING FEEDERS
+        const tooClose = kept.some(f => {
           const dx = f.position[0] - nx;
           const dz = f.position[2] - nz;
           return Math.sqrt(dx * dx + dz * dz) < MIN_SPACING;
@@ -90,7 +94,7 @@ export default function FeederSpawner() {
 
         if (tooClose) continue;
 
-        // Check house/road collision
+        // CHECK HOUSE/ROAD COLLISION
         if (!isSafeFeederPosition(nx, nz)) continue;
 
         const isBath = rand() > 0.55;
@@ -106,27 +110,30 @@ export default function FeederSpawner() {
       }
     }
 
-    // Batch both updates outside of render
+    // BATCH BOTH UPDATES OUTSIDE OF RENDER
     setFeeders(updated);
 
-    // Sync to store so game loop can detect proximity
+    // SYNC TO STORE SO GAME LOOP CAN DETECT PROXIMITY
     const currentStoreFeeders = useGameStore.getState().feeders;
-    const cleanedStore = currentStoreFeeders.filter((f) => {
+    const cleanedStore = currentStoreFeeders.filter(f => {
       const dx = f.position[0] - px;
       const dz = f.position[2] - pz;
       return Math.sqrt(dx * dx + dz * dz) < DESPAWN_DISTANCE;
     });
     const newStoreEntries = updated.filter(
-      (f) => !cleanedStore.some((sf) => sf.id === f.id)
+      f => !cleanedStore.some(sf => sf.id === f.id),
     );
-    if (newStoreEntries.length > 0 || cleanedStore.length !== currentStoreFeeders.length) {
+    if (
+      newStoreEntries.length > 0 ||
+      cleanedStore.length !== currentStoreFeeders.length
+    ) {
       useGameStore.setState({ feeders: [...cleanedStore, ...newStoreEntries] });
     }
   });
 
   return (
     <>
-      {feeders.map((f) => (
+      {feeders.map(f => (
         <Feeder key={f.id} data={f} />
       ))}
     </>

@@ -153,7 +153,7 @@ export default function SettingsScreen() {
               </p>
               <p className="mb-4">
                 Backyard Skies is a casual bird flight simulation game developed
-                by Birdbuddy. The Game allows users to control virtual birds,
+                by Nejc Furh. The Game allows users to control virtual birds,
                 explore procedurally generated environments, and compete on
                 leaderboards.
               </p>
@@ -172,8 +172,8 @@ export default function SettingsScreen() {
               <p className="mb-4">
                 All content within the Game, including but not limited to
                 graphics, designs, game mechanics, and audio, is the property of
-                Birdbuddy and is protected by applicable intellectual property
-                laws.
+                Nejc Furh and is protected by applicable intellectual
+                property laws.
               </p>
 
               <p className="font-bold text-black/80 mb-1.5">5. User Conduct</p>
@@ -189,7 +189,7 @@ export default function SettingsScreen() {
               </p>
               <p className="mb-4">
                 The Game is provided &quot;as is&quot; without warranties of any
-                kind, express or implied. Birdbuddy does not guarantee
+                kind, express or implied. Nejc Furh does not guarantee
                 uninterrupted or error-free gameplay.
               </p>
 
@@ -197,7 +197,7 @@ export default function SettingsScreen() {
                 7. Limitation of Liability
               </p>
               <p className="mb-4">
-                In no event shall Birdbuddy be liable for any indirect,
+                In no event shall Nejc Furh be liable for any indirect,
                 incidental, or consequential damages arising from your use of
                 the Game.
               </p>
@@ -206,7 +206,8 @@ export default function SettingsScreen() {
                 8. Changes to Terms
               </p>
               <p className="mb-4">
-                Birdbuddy reserves the right to modify these Terms at any time.
+                Nejc Furh reserves the right to modify these Terms at any
+                time.
                 Continued use of the Game after changes constitutes acceptance
                 of the updated Terms.
               </p>
@@ -214,7 +215,7 @@ export default function SettingsScreen() {
               <p className="font-bold text-black/80 mb-1.5">9. Contact</p>
               <p className="mb-4">
                 For questions regarding these Terms, please contact us at
-                support@birdbuddy.com.
+                support@backyardskies.com.
               </p>
             </div>
           </div>

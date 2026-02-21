@@ -28,11 +28,11 @@ export default function FeatherBurst() {
   const eulerHelper = useMemo(() => new THREE.Euler(), []);
   const colorRef = useRef(new THREE.Color('#C41E3A'));
 
-  // Watch for dying transition
+  // WATCH FOR DYING TRANSITION
   useEffect(() => {
-    const unsub = useGameStore.subscribe((state) => {
+    const unsub = useGameStore.subscribe(state => {
       if (state.gameState === 'dying' && prevGameState.current !== 'dying') {
-        // Trigger burst
+        // TRIGGER BURST
         const pos = state.position;
         const species = BIRD_SPECIES[state.selectedSpecies];
         colorRef.current.set(species.colors.body);
@@ -41,22 +41,22 @@ export default function FeatherBurst() {
           position: new THREE.Vector3(
             pos[0] + (Math.random() - 0.5) * 0.5,
             pos[1] + (Math.random() - 0.5) * 0.5,
-            pos[2] + (Math.random() - 0.5) * 0.5
+            pos[2] + (Math.random() - 0.5) * 0.5,
           ),
           velocity: new THREE.Vector3(
             (Math.random() - 0.5) * 6,
             Math.random() * 4 + 1,
-            (Math.random() - 0.5) * 6
+            (Math.random() - 0.5) * 6,
           ),
           rotation: new THREE.Euler(
             Math.random() * Math.PI * 2,
             Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2
+            Math.random() * Math.PI * 2,
           ),
           rotationSpeed: new THREE.Vector3(
             (Math.random() - 0.5) * 8,
             (Math.random() - 0.5) * 8,
-            (Math.random() - 0.5) * 4
+            (Math.random() - 0.5) * 4,
           ),
           age: 0,
           alive: true,
@@ -92,12 +92,12 @@ export default function FeatherBurst() {
 
       anyAlive = true;
 
-      // Physics
-      f.velocity.y -= 4 * delta; // gentle gravity
+      // PHYSICS
+      f.velocity.y -= 4 * delta; // GENTLE GRAVITY
       f.position.addScaledVector(f.velocity, delta);
-      f.velocity.multiplyScalar(0.98); // air drag
+      f.velocity.multiplyScalar(0.98); // AIR DRAG
 
-      // Spin
+      // SPIN
       f.rotation.x += f.rotationSpeed.x * delta;
       f.rotation.y += f.rotationSpeed.y * delta;
       f.rotation.z += f.rotationSpeed.z * delta;
@@ -108,7 +108,11 @@ export default function FeatherBurst() {
 
       eulerHelper.copy(f.rotation);
       quaternionHelper.setFromEuler(eulerHelper);
-      matrixHelper.compose(f.position, quaternionHelper, new THREE.Vector3(scale, scale * 0.3, scale));
+      matrixHelper.compose(
+        f.position,
+        quaternionHelper,
+        new THREE.Vector3(scale, scale * 0.3, scale),
+      );
       meshRef.current.setMatrixAt(i, matrixHelper);
     }
 
@@ -120,9 +124,14 @@ export default function FeatherBurst() {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, FEATHER_COUNT]} frustumCulled={false}>
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, FEATHER_COUNT]}
+      frustumCulled={false}
+    >
       <planeGeometry args={[1, 1]} />
       <meshBasicMaterial
+        // eslint-disable-next-line react-hooks/refs
         color={colorRef.current}
         side={THREE.DoubleSide}
         transparent

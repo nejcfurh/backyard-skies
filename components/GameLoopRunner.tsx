@@ -8,45 +8,6 @@ export default function GameLoopRunner() {
   const joystickXRef = useRef(0);
   const tapSteerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keyboard controls for desktop
-  useEffect(() => {
-    const keys = new Set<string>();
-
-    const onDown = (e: KeyboardEvent) => {
-      keys.add(e.key.toLowerCase());
-      update();
-
-      if (e.key === ' ' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const s = useGameStore.getState();
-        if (s.gameState === 'feeding' || s.gameState === 'drinking') {
-          if (s.perchTime >= 2) s.flyAway();
-        } else {
-          s.flap();
-        }
-      }
-    };
-
-    const onUp = (e: KeyboardEvent) => {
-      keys.delete(e.key.toLowerCase());
-      update();
-    };
-
-    const update = () => {
-      let x = 0;
-      if (keys.has('arrowleft') || keys.has('a')) x -= 1;
-      if (keys.has('arrowright') || keys.has('d')) x += 1;
-      joystickXRef.current = x;
-    };
-
-    window.addEventListener('keydown', onDown);
-    window.addEventListener('keyup', onUp);
-    return () => {
-      window.removeEventListener('keydown', onDown);
-      window.removeEventListener('keyup', onUp);
-    };
-  }, []);
-
   // Touch handling — tap-to-steer with gradient steering + inverse flap strength
   useEffect(() => {
     const handler = (e: TouchEvent) => {

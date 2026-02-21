@@ -6,7 +6,7 @@ import { useGameStore } from '@/store/gameStore';
 import { ObjMtlModel } from '@/components/scene/ObjMtlModel';
 import * as THREE from 'three';
 
-// Eagle by Robert Mirabelle [CC-BY] via Poly Pizza
+// EAGLE BY ROBERT MIRABELLE [CC-BY] VIA POLY PIZZA
 
 const _eagleTarget = new THREE.Vector3();
 
@@ -30,12 +30,12 @@ export default function Eagle() {
     groupRef.current.visible = true;
     const t = clock.getElapsedTime();
 
-    // Direction the bird is facing
+    // DIRECTION THE BIRD IS FACING
     const forwardX = Math.sin(rotation);
     const forwardZ = Math.cos(rotation);
 
     if (eagleDodgeWindow > 0) {
-      // Swooping attack — dive from the front toward player
+      // SWOOPING ATTACK - DIVE FROM THE FRONT TOWARD PLAYER
       const swoopProgress = 1 - eagleDodgeWindow / 1.5;
       const dist = 8 - swoopProgress * 8;
       groupRef.current.position.set(
@@ -44,7 +44,7 @@ export default function Eagle() {
         position[2] + forwardZ * dist + Math.cos(t * 3) * 0.5,
       );
     } else if (eagleAltitudeHunt) {
-      // Altitude hunt — eagle hovers ahead of the bird, facing it
+      // ALTITUDE HUNT - EAGLE HOVERS AHEAD OF THE BIRD, FACING IT
       const dist = 10 + Math.sin(t * 1.2) * 2;
       groupRef.current.position.set(
         position[0] + forwardX * dist,
@@ -52,7 +52,7 @@ export default function Eagle() {
         position[2] + forwardZ * dist,
       );
     } else {
-      // Circling near player — slightly above, tight orbit
+      // CIRCLING NEAR PLAYER - SLIGHTLY ABOVE, TIGHT ORBIT
       const circleRadius = 5;
       groupRef.current.position.set(
         position[0] + Math.sin(t * 0.8) * circleRadius,
@@ -62,7 +62,7 @@ export default function Eagle() {
     }
 
     if (eagleAltitudeHunt && eagleDodgeWindow <= 0) {
-      // Face the player from the side — offset perpendicular to forward direction
+      // FACE THE PLAYER FROM THE SIDE - OFFSET PERPENDICULAR TO FORWARD DIRECTION
       const perpX = Math.cos(rotation);
       const perpZ = -Math.sin(rotation);
       _eagleTarget.set(
@@ -71,7 +71,7 @@ export default function Eagle() {
         position[2] + perpZ * 3,
       );
     } else {
-      // Face the direction of travel (tangent to circle)
+      // FACE THE DIRECTION OF TRAVEL (TANGENT TO CIRCLE)
       _eagleTarget.set(
         position[0] + Math.sin(t * 0.8 + 0.1) * 5,
         groupRef.current.position.y,

@@ -6,25 +6,26 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import type { Group } from 'three';
 
 interface ObjMtlModelProps {
-  /** Base URL without extension, e.g. "/models/cat/model". Loads model.obj and model.mtl from same folder. */
+  /** BASE URL WITHOUT EXTENSION, E.G. "/models/cat/model". LOADS model.obj AND model.mtl FROM SAME FOLDER. */
   baseUrl: string;
-  /** Optional scale applied to the whole model. */
+  /** OPTIONAL SCALE APPLIED TO THE WHOLE MODEL. */
   scale?: number | [number, number, number];
-  /** Optional position [x, y, z]. */
+  /** OPTIONAL POSITION [x, y, z]. */
   position?: [number, number, number];
-  /** Optional rotation [x, y, z] in radians. */
+  /** OPTIONAL ROTATION [x, y, z] IN RADIANS. */
   rotation?: [number, number, number];
   children?: React.ReactNode;
 }
 
 /**
- * Loads an OBJ model with its MTL materials (and any JPG/PNG textures referenced in the MTL).
- * Put your files in public/, e.g.:
+ * LOADS AN OBJ MODEL WITH ITS MTL MATERIALS (AND ANY JPG/PNG TEXTURES REFERENCED IN THE MTL).
+ * PUT YOUR FILES IN PUBLIC/, E.G.:
  *   public/models/cat/model.obj
  *   public/models/cat/model.mtl
- *   public/models/cat/yourcolor.jpg   (same folder; name must match map_Kd in .mtl)
- * Then use: <ObjMtlModel baseUrl="/models/cat/model" />
+ *   public/models/cat/yourcolor.jpg   (SAME FOLDER; NAME MUST MATCH map_Kd IN .mtl)
+ * THEN USE: <ObjMtlModel baseUrl="/models/cat/model" />
  */
+
 export function ObjMtlModel({
   baseUrl,
   scale = 0.2,

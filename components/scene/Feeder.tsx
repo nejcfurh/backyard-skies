@@ -7,20 +7,20 @@ import { FeederData } from '@/types';
 import { ObjMtlModel } from '@/components/scene/ObjMtlModel';
 import * as THREE from 'three';
 
-/** Basin dish with indented bottom edge (recessed rim, not extruded). */
+/** BASIN DISH WITH INDENTED BOTTOM EDGE (RECEDED RIM, NOT EXTRUDED). */
 function createBasinGeometry(): THREE.LatheGeometry {
-  // Profile (radius, height): bottom edge indented, then flare out to bowl
+  // PROFILE (RADIUS, HEIGHT): BOTTOM EDGE INDENTED, THEN FLARE OUT TO BOWL
   const pts = [
-    new THREE.Vector2(1.0, 0), // indented bottom rim
+    new THREE.Vector2(1.0, 0), // INDENTED BOTTOM RIM
     new THREE.Vector2(1.08, 0.04),
-    new THREE.Vector2(1.35, 0.1), // flare to main bowl
+    new THREE.Vector2(1.35, 0.1), // FLARE TO MAIN BOWL
     new THREE.Vector2(1.3, 0.2),
-    new THREE.Vector2(1.25, 0.25), // top rim
+    new THREE.Vector2(1.25, 0.25), // TOP RIM
   ];
   return new THREE.LatheGeometry(pts, 32);
 }
 
-/** Flat strip with rounded corners (2D rounded rect extruded by depth). */
+/** FLAT STRIP WITH ROUNDED CORNERS (2D ROUNDED RECT EXTRUDED BY DEPTH). */
 function createRoundedStripGeometry(
   width: number,
   height: number,
@@ -54,9 +54,9 @@ export default function Feeder({ data }: FeederProps) {
   const [isLocked, setIsLocked] = useState(false);
   const prevLockedRef = useRef(false);
 
-  // Pulsing glow for dangerous feeders
+  // PULSING GLOW FOR DANGEROUS FEEDERS
   useFrame(({ clock }) => {
-    // Compute isLocked here (impure Date.now is allowed in useFrame)
+    // COMPUTE ISLOCKED HERE (IMPURE DATE.NOW IS ALLOWED IN USEFRAME)
     const now = Date.now();
     const newLocked = !!(data.lockedUntil && data.lockedUntil > now);
     if (newLocked !== prevLockedRef.current) {
@@ -68,7 +68,7 @@ export default function Feeder({ data }: FeederProps) {
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
     }
 
-    // Float marker up/down
+    // FLOAT MARKER UP/DOWN
     if (markerRef.current) {
       markerRef.current.position.y =
         5 + Math.sin(clock.getElapsedTime() * 2) * 0.3;
@@ -78,7 +78,7 @@ export default function Feeder({ data }: FeederProps) {
 
   const isBirdbath = data.type === 'birdbath';
 
-  // Calculate distance to player for marker visibility
+  // CALCULATE DISTANCE TO PLAYER FOR MARKER VISIBILITY
   const dx = position[0] - data.position[0];
   const dz = position[2] - data.position[2];
   const dist = Math.sqrt(dx * dx + dz * dz);
@@ -88,7 +88,7 @@ export default function Feeder({ data }: FeederProps) {
     <group position={data.position}>
       {isBirdbath ? <BirdbuddyBath /> : <BirdbuddyFeeder />}
 
-      {/* Danger glow for cat feeders or locked feeders */}
+      {/* DANGER GLOW FOR CAT FEEDERS OR LOCKED FEEDERS */}
       {(data.hasCat || isLocked) && (
         <mesh ref={glowRef} position={[0, 1.5, 0]}>
           <sphereGeometry args={[3.5, 16, 12]} />
@@ -101,7 +101,7 @@ export default function Feeder({ data }: FeederProps) {
         </mesh>
       )}
 
-      {/* Floating marker (hidden when locked) */}
+      {/* FLOATING MARKER (HIDDEN WHEN LOCKED) */}
       {showMarker && (
         <group ref={markerRef} position={[0, 5, 0]}>
           <mesh>
@@ -115,7 +115,7 @@ export default function Feeder({ data }: FeederProps) {
         </group>
       )}
 
-      {/* Locked indicator */}
+      {/* LOCKED INDICATOR */}
       {isLocked && showMarker && (
         <group position={[0, 6, 0]}>
           <mesh>
@@ -129,7 +129,7 @@ export default function Feeder({ data }: FeederProps) {
         </group>
       )}
 
-      {/* Cat 3D model for dangerous feeders */}
+      {/* CAT 3D MODEL FOR DANGEROUS FEEDERS */}
       {data.hasCat && (
         <ObjMtlModel
           baseUrl="/models/mycat/model"
@@ -142,12 +142,11 @@ export default function Feeder({ data }: FeederProps) {
   );
 }
 
-// Birdbuddy-style smart feeder — teal house-shape body with peaked roof,
-// white camera strip, orange tray, seed chambers with glass walls
+// BIRDBUDDY-STYLE SMART FEEDER - TEAL HOUSE-SHAPE BODY WITH PEAKED ROOF
 export function BirdbuddyFeeder() {
   return (
     <group>
-      {/* Gray pole from ground */}
+      {/* GRAY POLE FROM GROUND */}
       <mesh position={[0, 0.04, 0]}>
         <cylinderGeometry args={[0.5, 0.56, 0.1, 12]} />
         <meshStandardMaterial color="#6B6B6B" roughness={0.8} />
@@ -157,29 +156,28 @@ export function BirdbuddyFeeder() {
         <meshStandardMaterial color="#4A4A4A" roughness={0.6} metalness={0.3} />
       </mesh>
 
-      {/* Main body — teal house shape, open front */}
+      {/* MAIN BODY - TEAL HOUSE SHAPE, OPEN FRONT */}
       <mesh position={[0, 2.3, 0]}>
         <boxGeometry args={[0.9, 1, 0.6]} />
         <meshStandardMaterial color="#2D6B73" roughness={0.3} />
       </mesh>
 
-      {/* Peaked A-frame roof — teal with dark underside overhang */}
-      {/* Roof left slope */}
+      {/* ROOF LEFT SLOPE */}
       <mesh position={[-0.4, 2.8, 0]} rotation={[0, 0, Math.PI / 6]}>
         <boxGeometry args={[0.85, 0.06, 1.0]} />
         <meshStandardMaterial color="#2D6B73" roughness={0.4} />
       </mesh>
-      {/* Roof right slope */}
+      {/* ROOF RIGHT SLOPE */}
       <mesh position={[0.4, 2.8, 0]} rotation={[0, 0, -Math.PI / 6]}>
         <boxGeometry args={[0.85, 0.06, 1.0]} />
         <meshStandardMaterial color="#2D6B73" roughness={0.4} />
       </mesh>
-      {/* Roof ridge cap */}
+      {/* ROOF RIDGE CAP */}
       <mesh position={[0, 3, 0]}>
         <boxGeometry args={[0.12, 0.08, 1.0]} />
         <meshStandardMaterial color="#2D6B73" roughness={0.4} />
       </mesh>
-      {/* Camera strip — tall white/silver with rounded corners */}
+      {/* CAMERA STRIP - TALL WHITE/SILVER WITH ROUNDED CORNERS */}
       <mesh
         position={[-0.125, 1.95, 0.3]}
         geometry={useMemo(
@@ -189,7 +187,7 @@ export function BirdbuddyFeeder() {
       >
         <meshStandardMaterial color="#E8E4E0" roughness={0.3} metalness={0.1} />
       </mesh>
-      {/* Indicator dot near top of strip */}
+      {/* INDICATOR DOT NEAR TOP OF STRIP */}
       <mesh position={[0, 2.35, 0.3]}>
         <sphereGeometry args={[0.02, 6, 8]} />
         <meshStandardMaterial
@@ -198,7 +196,7 @@ export function BirdbuddyFeeder() {
           emissiveIntensity={0.3}
         />
       </mesh>
-      {/* Camera lens — large black cylinder lower-center */}
+      {/* CAMERA LENS - LARGE BLACK CYLINDER LOWER-CENTER */}
       <mesh position={[0, 2.07, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.05, 0.1, 0.05, 16]} />
         <meshStandardMaterial
@@ -207,17 +205,17 @@ export function BirdbuddyFeeder() {
           metalness={0.6}
         />
       </mesh>
-      {/* Orange/coral tray — extends forward from bottom, birds perch here */}
+      {/* ORANGE/CORAL TRAY - EXTENDS FORWARD FROM BOTTOM, BIRDS PERCH HERE */}
       <mesh position={[0, 1.78, 0.5]}>
         <boxGeometry args={[0.9, 0.02, 0.6]} />
         <meshStandardMaterial color="#f33737" roughness={0.5} />
       </mesh>
-      {/* Tray lip — front edge */}
+      {/* TRAY LIP - FRONT EDGE */}
       <mesh position={[0, 1.8, 0.82]}>
         <boxGeometry args={[0.9, 0.06, 0.06]} />
         <meshStandardMaterial color="#f33737" roughness={0.6} />
       </mesh>
-      {/* Tray lip — sides */}
+      {/* TRAY LIP - SIDES */}
       {[-1, 1].map(side => (
         <mesh key={`tl${side}`} position={[side * 0.48, 1.8, 0.44]}>
           <boxGeometry args={[0.06, 0.06, 0.8]} />
@@ -225,7 +223,7 @@ export function BirdbuddyFeeder() {
         </mesh>
       ))}
 
-      {/* Seeds scattered on tray (between the two side lines) */}
+      {/* SEEDS SCATTERED ON TRAY (BETWEEN THE TWO SIDE LINES) */}
       {useMemo(() => {
         // eslint-disable-next-line react-hooks/purity
         const rng = () => Math.random();
@@ -250,14 +248,13 @@ export function BirdbuddyFeeder() {
   );
 }
 
-// Birdbuddy-style birdbath — large shallow teal dish on pole (like feeder)
-// camera unit on back rim, white disc inside basin
+// BIRDBUDDY-STYLE BIRDBATH - LARGE SHALLOW TEAL DISH ON POLE (LIKE FEEDER)
 const BATH_POLE_TOP = 2.0;
 
 export function BirdbuddyBath() {
   return (
     <group>
-      {/* Gray pole from ground — same as regular feeder */}
+      {/* GRAY POLE FROM GROUND */}
       <mesh position={[0, 0.04, 0]}>
         <cylinderGeometry args={[0.5, 0.55, 0.08, 12]} />
         <meshStandardMaterial color="#6B6B6B" roughness={0.8} />
@@ -267,19 +264,19 @@ export function BirdbuddyBath() {
         <meshStandardMaterial color="#4A4A4A" roughness={0.6} metalness={0.3} />
       </mesh>
 
-      {/* Basin — large shallow teal dish on top of pole, indented bottom edge */}
+      {/* BASIN - LARGE SHALLOW TEAL DISH ON TOP OF POLE, INDENTED BOTTOM EDGE */}
       <mesh
         position={[0, BATH_POLE_TOP + 0.1, 0]}
         geometry={useMemo(() => createBasinGeometry(), [])}
       >
         <meshStandardMaterial color="#4A8B96" roughness={0.4} />
       </mesh>
-      {/* Basin inner depression */}
+      {/* BASIN INNER DEPRESSION */}
       <mesh position={[0, BATH_POLE_TOP + 0.2, 0]}>
         <cylinderGeometry args={[1.15, 1.2, 0.12, 24]} />
         <meshStandardMaterial color="#3D7580" roughness={0.5} />
       </mesh>
-      {/* Smooth rim edge */}
+      {/* SMOOTH RIM EDGE */}
       <mesh
         position={[0, BATH_POLE_TOP + 0.25, 0]}
         rotation={[Math.PI / 2, 0, 0]}
@@ -288,7 +285,7 @@ export function BirdbuddyBath() {
         <meshStandardMaterial color="#4A8B96" roughness={0.35} />
       </mesh>
 
-      {/* Water surface */}
+      {/* WATER SURFACE */}
       <mesh
         position={[0, BATH_POLE_TOP + 0.27, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -303,15 +300,15 @@ export function BirdbuddyBath() {
         />
       </mesh>
 
-      {/* Camera unit — house-shaped teal module on back rim */}
+      {/* CAMERA UNIT - HOUSE-SHAPED TEAL MODULE ON BACK RIM */}
       <group position={[0, BATH_POLE_TOP + 0.22, -1.05]}>
-        {/* Camera body — smaller house shape */}
+        {/* CAMERA BODY - SMALLER HOUSE SHAPE */}
         <mesh position={[0, 0.35, 0]}>
           <boxGeometry args={[0.6, 0.7, 0.45]} />
           <meshStandardMaterial color="#2D6B73" roughness={0.4} />
         </mesh>
 
-        {/* Peaked roof on camera unit */}
+        {/* PEAKED ROOF ON CAMERA UNIT */}
         <mesh position={[-0.3, 0.69, 0]} rotation={[0, 0, Math.PI / 6]}>
           <boxGeometry args={[0.6, 0.04, 0.5]} />
           <meshStandardMaterial color="#2D6B73" roughness={0.4} />
@@ -325,7 +322,7 @@ export function BirdbuddyBath() {
           <meshStandardMaterial color="#2D6B73" roughness={0.4} />
         </mesh>
 
-        {/* White camera strip on front (facing basin center) — rounded corners */}
+        {/* WHITE CAMERA STRIP ON FRONT (FACING BASIN CENTER) - ROUNDED CORNERS */}
         <mesh
           position={[-0.09, 0.19, 0.22]}
           geometry={useMemo(
@@ -339,7 +336,7 @@ export function BirdbuddyBath() {
             metalness={0.1}
           />
         </mesh>
-        {/* Indicator dot */}
+        {/* INDICATOR DOT */}
         <mesh position={[0, 0.5, 0.23]}>
           <sphereGeometry args={[0.02, 12, 8]} />
           <meshStandardMaterial
@@ -348,7 +345,7 @@ export function BirdbuddyBath() {
             emissiveIntensity={0.3}
           />
         </mesh>
-        {/* Camera lens */}
+        {/* CAMERA LENS */}
         <mesh position={[0, 0.3, 0.24]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.06, 0.06, 0.04, 12]} />
           <meshStandardMaterial
@@ -358,54 +355,6 @@ export function BirdbuddyBath() {
           />
         </mesh>
       </group>
-    </group>
-  );
-}
-
-export function CatSilhouette() {
-  return (
-    <group position={[2.5, 0, 1.5]} scale={0.7}>
-      {/* Cat body */}
-      <mesh position={[0, 0.4, 0]}>
-        <sphereGeometry args={[0.4, 10, 8]} />
-        <meshStandardMaterial color="#2A2A2A" roughness={0.9} />
-      </mesh>
-      {/* Cat head */}
-      <mesh position={[0, 0.7, 0.3]}>
-        <sphereGeometry args={[0.25, 10, 8]} />
-        <meshStandardMaterial color="#2A2A2A" roughness={0.9} />
-      </mesh>
-      {/* Ears */}
-      <mesh position={[0.12, 0.95, 0.3]} rotation={[0, 0, 0.2]}>
-        <coneGeometry args={[0.08, 0.15, 4]} />
-        <meshStandardMaterial color="#2A2A2A" roughness={0.9} />
-      </mesh>
-      <mesh position={[-0.12, 0.95, 0.3]} rotation={[0, 0, -0.2]}>
-        <coneGeometry args={[0.08, 0.15, 4]} />
-        <meshStandardMaterial color="#2A2A2A" roughness={0.9} />
-      </mesh>
-      {/* Eyes */}
-      <mesh position={[0.1, 0.75, 0.5]}>
-        <sphereGeometry args={[0.04, 6, 6]} />
-        <meshStandardMaterial
-          color="#FFD700"
-          emissive="#FFD700"
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-      <mesh position={[-0.1, 0.75, 0.5]}>
-        <sphereGeometry args={[0.04, 6, 6]} />
-        <meshStandardMaterial
-          color="#FFD700"
-          emissive="#FFD700"
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-      {/* Tail */}
-      <mesh position={[-0.3, 0.5, -0.3]} rotation={[0.5, 0.3, -0.8]}>
-        <cylinderGeometry args={[0.04, 0.02, 0.6, 6]} />
-        <meshStandardMaterial color="#2A2A2A" roughness={0.9} />
-      </mesh>
     </group>
   );
 }

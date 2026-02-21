@@ -68,28 +68,6 @@ function Chunk({ cx, cz }: { cx: number; cz: number }) {
 
   return (
     <group position={[ox, 0, oz]}>
-      {data.grassPatches.map((p, i) => (
-        <mesh
-          key={`g${i}`}
-          rotation={[-Math.PI / 2, 0, p.rot]}
-          position={[p.x, 0.01, p.z]}
-        >
-          <planeGeometry args={[p.w, p.h]} />
-          <meshStandardMaterial color={p.color} roughness={0.95} />
-        </mesh>
-      ))}
-
-      {data.mowStripes.map((s, i) => (
-        <mesh
-          key={`ms${i}`}
-          rotation={[-Math.PI / 2, 0, s.rot]}
-          position={[s.x, 0.005, s.z]}
-        >
-          <planeGeometry args={[s.w, s.h]} />
-          <meshStandardMaterial color={s.color} roughness={0.98} />
-        </mesh>
-      ))}
-
       {data.hasRoadX && <RoadX />}
       {data.hasRoadZ && <RoadZ />}
 

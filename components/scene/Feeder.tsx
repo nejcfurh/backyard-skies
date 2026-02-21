@@ -7,6 +7,39 @@ import { FeederData } from '@/types';
 import { ObjMtlModel } from '@/components/scene/ObjMtlModel';
 import * as THREE from 'three';
 
+const dangerGlowMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uColor: { value: new THREE.Color('#FF3D00') },
+    uTime: { value: 0 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec3 vNormal;
+    varying vec3 vViewDir;
+    void main() {
+      vNormal = normalize(normalMatrix * normal);
+      vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+      vViewDir = normalize(-mvPos.xyz);
+      gl_Position = projectionMatrix * mvPos;
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform vec3 uColor;
+    uniform float uTime;
+    varying vec3 vNormal;
+    varying vec3 vViewDir;
+    void main() {
+      float fresnel = 1.0 - abs(dot(vNormal, vViewDir));
+      float glow = pow(fresnel, 3.0);
+      float pulse = 0.7 + 0.3 * sin(uTime * 3.0);
+      float alpha = glow * 0.55 * pulse;
+      gl_FragColor = vec4(uColor, alpha);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+  side: THREE.FrontSide,
+});
+
 /** BASIN DISH WITH INDENTED BOTTOM EDGE (RECEDED RIM, NOT EXTRUDED). */
 function createBasinGeometry(): THREE.LatheGeometry {
   // PROFILE (RADIUS, HEIGHT): BOTTOM EDGE INDENTED, THEN FLARE OUT TO BOWL
@@ -54,21 +87,27 @@ export default function Feeder({ data }: FeederProps) {
   const [isLocked, setIsLocked] = useState(false);
   const prevLockedRef = useRef(false);
 
-  // PULSING GLOW FOR DANGEROUS FEEDERS
+  const glowMat = useMemo(() => {
+    const mat = dangerGlowMaterial.clone();
+    mat.uniforms.uColor.value = new THREE.Color(data.hasCat ? '#FF3D00' : '#FF9800');
+    return mat;
+  }, [data.hasCat]);
+
   useFrame(({ clock }) => {
-    // COMPUTE ISLOCKED HERE (IMPURE DATE.NOW IS ALLOWED IN USEFRAME)
     const now = Date.now();
     const newLocked = !!(data.lockedUntil && data.lockedUntil > now);
     if (newLocked !== prevLockedRef.current) {
       prevLockedRef.current = newLocked;
       setIsLocked(newLocked);
     }
-    if (glowRef.current && data.hasCat) {
-      const pulse = Math.sin(clock.getElapsedTime() * 3) * 0.3 + 0.5;
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+
+    // Drive shader uniforms
+    if (glowRef.current) {
+      const mat = glowRef.current.material as THREE.ShaderMaterial;
+      mat.uniforms.uTime.value = clock.getElapsedTime();
+      mat.uniforms.uColor.value.set(isLocked ? '#FF9800' : '#FF3D00');
     }
 
-    // FLOAT MARKER UP/DOWN
     if (markerRef.current) {
       markerRef.current.position.y =
         5 + Math.sin(clock.getElapsedTime() * 2) * 0.3;
@@ -88,16 +127,10 @@ export default function Feeder({ data }: FeederProps) {
     <group position={data.position}>
       {isBirdbath ? <BirdbuddyBath /> : <BirdbuddyFeeder />}
 
-      {/* DANGER GLOW FOR CAT FEEDERS OR LOCKED FEEDERS */}
+      {/* DANGER GLOW — FRESNEL GRADIENT AURA */}
       {(data.hasCat || isLocked) && (
-        <mesh ref={glowRef} position={[0, 1.5, 0]}>
-          <sphereGeometry args={[3.5, 16, 12]} />
-          <meshBasicMaterial
-            color={isLocked ? '#FF9800' : '#FF3D00'}
-            transparent
-            opacity={0.3}
-            side={THREE.BackSide}
-          />
+        <mesh ref={glowRef} position={[0, 1.5, 0]} material={glowMat}>
+          <sphereGeometry args={[3.5, 24, 16]} />
         </mesh>
       )}
 

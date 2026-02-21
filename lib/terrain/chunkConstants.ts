@@ -16,16 +16,6 @@ export const HOUSE_MODELS = [
 
 export const GRASS_MODEL = '/models/grass/Tuft%20of%20grass.glb';
 
-export const LAWN_COLORS = [
-  '#4A8C5A',
-  '#3F8048',
-  '#508F55',
-  '#458A4E',
-  '#559A5C',
-  '#3D7A44',
-];
-export const DARK_LAWN = ['#3A7A4A', '#357040', '#406E45'];
-export const LIGHT_LAWN = ['#55995C', '#5AA060', '#60A868'];
 export const ROOF_COLORS = [
   '#7D5E52',
   '#8B3A3A',

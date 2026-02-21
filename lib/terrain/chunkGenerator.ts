@@ -4,31 +4,10 @@ import {
   HOUSES_PER_CHUNK,
   TREES_PER_CHUNK,
   HOUSE_MODELS,
-  LAWN_COLORS,
-  DARK_LAWN,
-  LIGHT_LAWN,
   ROOF_COLORS,
   WALL_COLORS,
   FENCE_COLORS,
 } from './chunkConstants';
-
-export interface GrassPatch {
-  x: number;
-  z: number;
-  w: number;
-  h: number;
-  rot: number;
-  color: string;
-}
-
-export interface MowStripe {
-  x: number;
-  z: number;
-  w: number;
-  h: number;
-  rot: number;
-  color: string;
-}
 
 export interface HouseData {
   x: number;
@@ -59,8 +38,6 @@ export interface GardenBedData {
 }
 
 export interface ChunkData {
-  grassPatches: GrassPatch[];
-  mowStripes: MowStripe[];
   hasRoadX: boolean;
   hasRoadZ: boolean;
   houses: HouseData[];
@@ -72,34 +49,11 @@ export function generateChunkData(cx: number, cz: number): ChunkData {
   const seed = cx * 73856093 + cz * 19349663;
   const rng = seededRandom(Math.abs(seed) + 1);
 
-  // GRASS PATCHES
-  const grassPatches: GrassPatch[] = [];
-  for (let i = 0; i < 5; i++) {
-    grassPatches.push({
-      x: (rng() - 0.5) * CHUNK_SIZE * 0.9,
-      z: (rng() - 0.5) * CHUNK_SIZE * 0.9,
-      w: 3 + rng() * 8,
-      h: 3 + rng() * 8,
-      rot: rng() * 0.3,
-      color: LAWN_COLORS[Math.floor(rng() * LAWN_COLORS.length)],
-    });
-  }
+  // Skip 30 RNG calls (grass patches: 5 × 6) to keep downstream positions stable
+  for (let i = 0; i < 30; i++) rng();
 
-  // MOW STRIPES
-  const mowStripes: MowStripe[] = [];
-  for (let i = 0; i < 4; i++) {
-    const isLight = i % 2 === 0;
-    mowStripes.push({
-      x: (rng() - 0.5) * CHUNK_SIZE * 0.8,
-      z: (rng() - 0.5) * CHUNK_SIZE * 0.8,
-      w: 1.2 + rng() * 0.8,
-      h: 6 + rng() * 10,
-      rot: (Math.floor(rng() * 2) * Math.PI) / 2 + (rng() - 0.5) * 0.1,
-      color: isLight
-        ? LIGHT_LAWN[Math.floor(rng() * LIGHT_LAWN.length)]
-        : DARK_LAWN[Math.floor(rng() * DARK_LAWN.length)],
-    });
-  }
+  // Skip 28 RNG calls (mow stripes: 4 × 7) to keep downstream positions stable
+  for (let i = 0; i < 28; i++) rng();
 
   // ROADS
   const hasRoadX = true;
@@ -175,8 +129,6 @@ export function generateChunkData(cx: number, cz: number): ChunkData {
   }
 
   return {
-    grassPatches,
-    mowStripes,
     hasRoadX,
     hasRoadZ,
     houses,

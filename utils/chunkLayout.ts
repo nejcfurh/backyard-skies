@@ -52,7 +52,7 @@ export function getChunkHouses(cx: number, cz: number): {
 
   if (hasRoadX && hasRoadZ) {
     // Intersection: 4 quadrant corners
-    // Per house: x, z, w, h, d, roofColor, wallColor, fenceColor, hasPatio = 9 calls
+    // Per house: x, z, w, h, d, roofColor, wallColor, fenceColor, hasPatio, modelIndex = 10 calls
     // rot is deterministic (NO rng call)
     for (let qi = 0; qi < 4; qi++) {
       const sx = qi < 2 ? 1 : -1;
@@ -67,7 +67,8 @@ export function getChunkHouses(cx: number, cz: number): {
       // rot: sz > 0 ? Math.PI : 0 — deterministic, NO rng call
       rng(); // fenceColor
       rng(); // hasPatio
-      houses.push({ x: ox + hx, z: oz + hz, hw: (w + 4) / 2, hd: (d + 6) / 2 });
+      rng(); // modelIndex
+      houses.push({ x: ox + hx, z: oz + hz, hw: (w + 8) / 2, hd: (d + 10) / 2 });
     }
   } else {
     // Non-intersection: HOUSES_PER_CHUNK (3.5 → loop runs 4 times: i=0,1,2,3)
@@ -84,7 +85,8 @@ export function getChunkHouses(cx: number, cz: number): {
       // rot: side > 0 ? Math.PI : 0 — deterministic, NO rng call
       rng(); // fenceColor
       rng(); // hasPatio
-      houses.push({ x: ox + baseX, z: oz + hz, hw: (w + 4) / 2, hd: (d + 6) / 2 });
+      rng(); // modelIndex
+      houses.push({ x: ox + baseX, z: oz + hz, hw: (w + 8) / 2, hd: (d + 10) / 2 });
     }
   }
 
@@ -120,25 +122,13 @@ export function isSafeFeederPosition(wx: number, wz: number): boolean {
         }
       }
 
-      // Tree collision (~2 unit radius for canopy)
+      // Tree collision (~4 unit radius for canopy)
       for (const t of trees) {
         const tdx = wx - t.x;
         const tdz = wz - t.z;
-        if (tdx * tdx + tdz * tdz < 4) {
+        if (tdx * tdx + tdz * tdz < 16) {
           return false;
         }
-      }
-
-      // Road collision
-      const neighborOx = (cx + dx) * CHUNK_SIZE;
-      const neighborOz = (cz + dz) * CHUNK_SIZE;
-
-      const localZ = wz - neighborOz;
-      if (Math.abs(localZ) < 3.5) return false;
-
-      if (hasRoadZ) {
-        const localX = wx - neighborOx;
-        if (Math.abs(localX) < 3.5) return false;
       }
     }
   }

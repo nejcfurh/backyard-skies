@@ -1,13 +1,32 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import { useGameStore } from '@/store/gameStore';
+import * as THREE from 'three';
 
-const CHUNK_SIZE = 40;
-const RENDER_DISTANCE = 1.5; // CHUNKS IN EACH DIRECTION (3×3 = 9 CHUNKS)
-const HOUSES_PER_CHUNK = 3.5;
-const TREES_PER_CHUNK = 6;
+const GRASS_MODEL = '/models/grass/Tuft%20of%20grass.glb';
+useGLTF.preload(GRASS_MODEL);
+
+const HOUSE_MODELS = [
+  '/models/houses/House.glb',
+  '/models/houses/House-7VSVwAg2T3.glb',
+  '/models/houses/Two story house.glb',
+  '/models/houses/Two story house-sGgL4Nt7I7.glb',
+  '/models/houses/Two story house-htvFgnVP4d.glb',
+  '/models/houses/Two story house-hmXhiLDf8D.glb',
+  '/models/houses/Two story house-QsF9E0PqyN.glb',
+  '/models/houses/Two story house-9N6ROCbmO1.glb',
+];
+
+// Preload all house models at module level
+HOUSE_MODELS.forEach(url => useGLTF.preload(url));
+
+const CHUNK_SIZE = 45;
+const RENDER_DISTANCE = 2; // CHUNKS IN EACH DIRECTION (3×3 = 9 CHUNKS)
+const HOUSES_PER_CHUNK = 3;
+const TREES_PER_CHUNK = 5;
 
 // SEEDED RANDOM FOR DETERMINISTIC CHUNK GENERATION
 function seededRandom(seed: number) {
@@ -99,22 +118,24 @@ function Chunk({ cx, cz }: { cx: number; cz: number }) {
       {data.hasRoadZ && <RoadZ />}
 
       {/* HOUSES WITH YARDS */}
-      {data.houses.map((h, i) => (
-        <group key={`hg${i}`}>
-          <House {...h} />
-          {/* YARD FENCING AROUND EACH HOUSE */}
-          <YardFence
-            x={h.x}
-            z={h.z}
-            w={h.w + 4}
-            d={h.d + 6}
-            rot={h.rot}
-            fenceColor={h.fenceColor}
-          />
-          {/* PATIO / DECK BEHIND HOUSE */}
-          {h.hasPatio && <Patio x={h.x} z={h.z} w={h.w} rot={h.rot} />}
-        </group>
-      ))}
+      <Suspense fallback={null}>
+        {data.houses.map((h, i) => (
+          <group key={`hg${i}`}>
+            <House {...h} />
+            {/* YARD FENCING AROUND EACH HOUSE */}
+            <YardFence
+              x={h.x}
+              z={h.z}
+              w={h.w + 4}
+              d={h.d + 6}
+              rot={h.rot}
+              fenceColor={h.fenceColor}
+            />
+            {/* PATIO / DECK BEHIND HOUSE */}
+            {h.hasPatio && <Patio x={h.x} z={h.z} w={h.w} rot={h.rot} />}
+          </group>
+        ))}
+      </Suspense>
 
       {/* TREES */}
       {data.trees.map((t, i) => (
@@ -125,6 +146,15 @@ function Chunk({ cx, cz }: { cx: number; cz: number }) {
       {data.gardenBeds.map((g, i) => (
         <GardenBed key={`gb${i}`} {...g} />
       ))}
+
+      {/* GRASS FIELD — INSTANCED */}
+      <Suspense fallback={null}>
+        <GrassField
+          houses={data.houses}
+          hasRoadX={data.hasRoadX}
+          hasRoadZ={data.hasRoadZ}
+        />
+      </Suspense>
     </group>
   );
 }
@@ -156,6 +186,7 @@ interface HouseData {
   rot: number;
   fenceColor: string;
   hasPatio: boolean;
+  modelIndex: number;
 }
 interface TreeData {
   x: number;
@@ -255,6 +286,7 @@ function generateChunkData(cx: number, cz: number) {
         rot: sz > 0 ? Math.PI : 0, // FACE TOWARD NEAREST HORIZONTAL ROAD
         fenceColor: fenceColors[Math.floor(rng() * fenceColors.length)],
         hasPatio: rng() > 0.65,
+        modelIndex: Math.floor(rng() * HOUSE_MODELS.length),
       });
     }
   } else {
@@ -274,6 +306,7 @@ function generateChunkData(cx: number, cz: number) {
         rot: side > 0 ? Math.PI : 0, // face toward road
         fenceColor: fenceColors[Math.floor(rng() * fenceColors.length)],
         hasPatio: rng() > 0.65,
+        modelIndex: Math.floor(rng() * HOUSE_MODELS.length),
       });
     }
   }
@@ -356,50 +389,113 @@ function RoadZ() {
   );
 }
 
-function House({ x, z, w, h, d, roofColor, wallColor, rot }: HouseData) {
+function GrassField({
+  houses,
+  hasRoadX,
+  hasRoadZ,
+}: {
+  houses: HouseData[];
+  hasRoadX: boolean;
+  hasRoadZ: boolean;
+}) {
+  const { scene } = useGLTF(GRASS_MODEL);
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  const { geometry, material, meshMatrix, positions } = useMemo(() => {
+    scene.updateMatrixWorld(true);
+
+    let geo: THREE.BufferGeometry | null = null;
+    let mat: THREE.Material | null = null;
+    const mMatrix = new THREE.Matrix4();
+
+    scene.traverse(child => {
+      if (!geo && (child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        geo = mesh.geometry;
+        mat = mesh.material as THREE.Material;
+        mesh.updateWorldMatrix(true, false);
+        mMatrix.copy(mesh.matrixWorld);
+      }
+    });
+
+    // Generate grid positions, skip roads and house footprints
+    const pos: { x: number; z: number; rot: number; s: number }[] = [];
+    const half = CHUNK_SIZE / 2;
+
+    for (let gx = -half; gx < half; gx += 0.25) {
+      for (let gz = -half; gz < half; gz += 0.25) {
+        // Skip horizontal road + sidewalks
+        if (hasRoadX && Math.abs(gz) < 3.5) continue;
+        // Skip vertical road + sidewalks
+        if (hasRoadZ && Math.abs(gx) < 3.5) continue;
+
+        // Skip house footprints
+        let blocked = false;
+        for (const h of houses) {
+          if (Math.abs(gx - h.x) < 4 && Math.abs(gz - h.z) < 4) {
+            blocked = true;
+            break;
+          }
+        }
+        if (blocked) continue;
+
+        // Deterministic hash for variation
+        const hash =
+          Math.abs(Math.sin(gx * 12.9898 + gz * 78.233) * 43758.5453) % 1;
+        const hash2 =
+          Math.abs(Math.sin(gx * 78.233 + gz * 12.9898) * 43758.5453) % 1;
+        pos.push({
+          x: gx + hash * 0.5 - 0.25,
+          z: gz + hash2 * 0.5 - 0.25,
+          rot: hash * Math.PI * 2,
+          s: 0.008 + hash2 * 0.006,
+        });
+      }
+    }
+
+    return {
+      geometry: geo!,
+      material: mat!,
+      meshMatrix: mMatrix,
+      positions: pos,
+    };
+  }, [scene, houses, hasRoadX, hasRoadZ]);
+
+  useEffect(() => {
+    if (!meshRef.current || !geometry) return;
+    const dummy = new THREE.Object3D();
+    const tempMatrix = new THREE.Matrix4();
+
+    positions.forEach((p, i) => {
+      dummy.position.set(p.x, 0, p.z);
+      dummy.rotation.set(0, p.rot, 0);
+      dummy.scale.setScalar(p.s);
+      dummy.updateMatrix();
+      tempMatrix.multiplyMatrices(dummy.matrix, meshMatrix);
+      meshRef.current!.setMatrixAt(i, tempMatrix);
+    });
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [positions, meshMatrix, geometry]);
+
+  if (!geometry || !material) return null;
+
   return (
-    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
-      {/* FOUNDATION */}
-      <mesh position={[0, 0.1, 0]}>
-        <boxGeometry args={[w + 0.3, 0.2, d + 0.3]} />
-        <meshStandardMaterial color="#8A8070" roughness={0.9} />
-      </mesh>
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, material, positions.length]}
+      frustumCulled={false}
+    />
+  );
+}
 
-      {/* WALLS */}
-      <mesh position={[0, h / 2 + 0.2, 0]}>
-        <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial color={wallColor} roughness={0.8} />
-      </mesh>
+function House({ x, z, rot, modelIndex }: HouseData) {
+  const url = HOUSE_MODELS[modelIndex % HOUSE_MODELS.length];
+  const { scene } = useGLTF(url);
+  const clone = useMemo(() => scene.clone(true), [scene]);
 
-      {/* ROOF — PITCHED GABLE */}
-      <mesh position={[0, h + 0.2 + 0.7, 0]} rotation={[0, Math.PI / 4, 0]}>
-        <coneGeometry args={[Math.max(w, d) * 0.72, 1.4, 4]} />
-        <meshStandardMaterial color={roofColor} roughness={0.75} />
-      </mesh>
-
-      {/* DOOR */}
-      <mesh position={[0, 0.95, d / 2 + 0.01]}>
-        <boxGeometry args={[0.7, 1.6, 0.05]} />
-        <meshStandardMaterial color="#5A3E2B" roughness={0.85} />
-      </mesh>
-
-      {/* WINDOWS — SINGLE MESH EACH, NO CROSS BARS (INVISIBLE FROM AIR) */}
-      {[-1, 1].map(side => (
-        <mesh key={side} position={[side * w * 0.3, h * 0.55, d / 2 + 0.01]}>
-          <boxGeometry args={[0.55, 0.55, 0.04]} />
-          <meshStandardMaterial
-            color="#A8D8EA"
-            roughness={0.1}
-            metalness={0.2}
-          />
-        </mesh>
-      ))}
-
-      {/* CHIMNEY */}
-      <mesh position={[w * 0.28, h + 1.1, -d * 0.2]}>
-        <boxGeometry args={[0.45, 0.9, 0.45]} />
-        <meshStandardMaterial color="#7A6055" roughness={0.9} />
-      </mesh>
+  return (
+    <group position={[x, 0, z]} rotation={[0, rot, 0]} scale={6.3}>
+      <primitive object={clone} />
     </group>
   );
 }

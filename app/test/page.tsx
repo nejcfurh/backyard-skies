@@ -5,7 +5,8 @@ import { OrbitControls, Grid } from '@react-three/drei';
 import { BirdbuddyFeeder, BirdbuddyBath } from '@/components/scene/Feeder';
 import { ObjMtlModel } from '@/components/scene/ObjMtlModel';
 import GltfBirdModel from '@/components/scene/GltfBirdModel';
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useMemo } from 'react';
+import { useGLTF } from '@react-three/drei';
 
 export default function TestPage() {
   const [showFeeder, setShowFeeder] = useState(true);
@@ -15,6 +16,8 @@ export default function TestPage() {
   const [showBird, setShowBird] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [birdFlap, setBirdFlap] = useState(false);
+  const [showGrass, setShowGrass] = useState(true);
+  const [grassScale, setGrassScale] = useState(1);
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#1a1a2e' }}>
@@ -129,6 +132,35 @@ export default function TestPage() {
           />
           Grid
         </label>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={showGrass}
+            onChange={() => setShowGrass(!showGrass)}
+          />
+          Grass Tuft
+        </label>
+        {showGrass && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            Scale: {grassScale.toFixed(1)}
+            <input
+              type="range"
+              min="0.1"
+              max="50"
+              step="0.1"
+              value={grassScale}
+              onChange={e => setGrassScale(parseFloat(e.target.value))}
+              style={{ width: 100 }}
+            />
+          </label>
+        )}
         <hr
           style={{
             border: 'none',
@@ -245,6 +277,13 @@ export default function TestPage() {
           />
         )}
 
+        {/* GRASS TUFT GLB MODEL */}
+        {showGrass && (
+          <Suspense fallback={null}>
+            <GrassTestModel scale={grassScale} />
+          </Suspense>
+        )}
+
         <OrbitControls
           makeDefault
           minDistance={1.5}
@@ -253,6 +292,17 @@ export default function TestPage() {
         />
       </Canvas>
     </div>
+  );
+}
+
+function GrassTestModel({ scale }: { scale: number }) {
+  const { scene } = useGLTF('/models/grass/Tuft%20of%20grass.glb');
+  const clone = useMemo(() => scene.clone(true), [scene]);
+
+  return (
+    <group position={[0, 0, -3]} scale={0.01}>
+      <primitive object={clone} />
+    </group>
   );
 }
 

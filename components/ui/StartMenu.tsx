@@ -26,7 +26,7 @@ export default function StartMenu() {
       <FloatingParticles />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-between px-8 pb-10">
+      <div className="relative z-10 flex flex-col items-center justify-between px-8 py-10">
         {/* Title area */}
         <div className="flex flex-col items-center mt-5">
           <div className="text-7xl font-black italic font-serif text-white tracking-tighter leading-none text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] mb-2">

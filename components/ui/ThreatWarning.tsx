@@ -12,8 +12,11 @@ export default function ThreatWarning() {
   const position = useGameStore((s) => s.position);
   const gameState = useGameStore((s) => s.gameState);
   const flyAway = useGameStore((s) => s.flyAway);
+  const groundTimer = useGameStore((s) => s.groundTimer);
 
-  if (!threatWarningActive && !threatType) return null;
+  const isOnGround = groundTimer > 0;
+
+  if (!threatWarningActive && !threatType && !isOnGround) return null;
 
   const isEagle = threatType === 'eagle';
   const isCat = threatType === 'cat';
@@ -101,6 +104,23 @@ export default function ThreatWarning() {
             <span className="text-[9px] text-[rgba(255,200,200,0.5)]">TAP ANYWHERE</span>
           </div>
         </div>
+      )}
+
+      {/* Grounded warning — flap to take off before cat catches you */}
+      {isOnGround && !isPerched && (
+        <>
+          <div className="fixed inset-0 z-20 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(255,61,0,0.35)_100%)] animate-[pulse_1s_ease-in-out_infinite]" />
+          <div className="fixed inset-0 z-30 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/65 backdrop-blur-xl rounded-[18px] py-6 px-9 flex flex-col items-center gap-2 border border-[rgba(255,61,0,0.3)] animate-[bounce-y_0.6s_ease-in-out_infinite]">
+              <span className="text-xs text-[#FF5252] font-bold tracking-wider">GROUNDED</span>
+              <span className="text-[48px] font-black text-white leading-none">
+                {Math.ceil(Math.max(0, 3 - groundTimer))}
+              </span>
+              <span className="text-sm text-white/60 font-semibold">TAP TO FLY</span>
+              <span className="text-[10px] text-white/30">A CAT IS APPROACHING</span>
+            </div>
+          </div>
+        </>
       )}
     </>
   );

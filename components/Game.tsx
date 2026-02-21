@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import StartMenu from '@/components/ui/StartMenu';
 import SpeciesSelect from '@/components/ui/SpeciesSelect';
@@ -9,7 +8,6 @@ import GameOverScreen from '@/components/ui/GameOverScreen';
 import SettingsScreen from '@/components/ui/SettingsScreen';
 import HUD from '@/components/ui/HUD';
 import ThreatWarning from '@/components/ui/ThreatWarning';
-import VirtualJoystick from '@/components/ui/VirtualJoystick';
 import BottomNav from '@/components/ui/BottomNav';
 import FeederDirectionHint from '@/components/ui/FeederDirectionHint';
 import DeathTransition from '@/components/ui/DeathTransition';
@@ -59,10 +57,6 @@ function MobileOnly() {
 export default function Game() {
   const gameState = useGameStore(s => s.gameState);
 
-  const handleJoystickMove = useCallback((x: number) => {
-    window.dispatchEvent(new CustomEvent('joystick-move', { detail: x }));
-  }, []);
-
   const isPlaying =
     gameState === 'flight' ||
     gameState === 'feeding' ||
@@ -97,7 +91,6 @@ export default function Game() {
         <>
           <HUD />
           <ThreatWarning />
-          <VirtualJoystick onMove={handleJoystickMove} />
           <BottomNav />
           <FeederDirectionHint />
         </>

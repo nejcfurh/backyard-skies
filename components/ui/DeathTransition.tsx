@@ -8,17 +8,17 @@ export default function DeathTransition() {
   const [fadeOpacity, setFadeOpacity] = useState(0);
 
   useEffect(() => {
-    // Phase 1: Brief red/white flash (0-200ms)
+    // PHASE 1: BRIEF RED/WHITE FLASH (0-200ms)
     let raf: number;
     const start = performance.now();
 
     function animateFlash() {
       const elapsed = performance.now() - start;
       if (elapsed < 100) {
-        // Ramp up
+        // RAMP UP
         setFlashOpacity(Math.min(0.6, (elapsed / 100) * 0.6));
       } else if (elapsed < 200) {
-        // Ramp down
+        // RAMP DOWN
         setFlashOpacity(0.6 * (1 - (elapsed - 100) / 100));
       } else {
         setFlashOpacity(0);
@@ -35,7 +35,7 @@ export default function DeathTransition() {
   useEffect(() => {
     if (phase !== 'fade') return;
 
-    // Phase 2: Gradual dark overlay fade-in (200ms-2000ms)
+    // PHASE 2: GRADUAL DARK OVERLAY FADE-IN (200ms-2000ms)
     let raf: number;
     const start = performance.now();
     const duration = 1800;
@@ -43,7 +43,7 @@ export default function DeathTransition() {
     function animateFade() {
       const elapsed = performance.now() - start;
       const t = Math.min(elapsed / duration, 1);
-      // Ease-in curve for natural darkening
+      // EASE-IN CURVE FOR NATURAL DARKENING
       setFadeOpacity(t * t * 0.85);
       if (t < 1) {
         raf = requestAnimationFrame(animateFade);
@@ -56,17 +56,18 @@ export default function DeathTransition() {
 
   return (
     <>
-      {/* Red/white flash */}
+      {/* RED/WHITE FLASH */}
       {flashOpacity > 0 && (
         <div
           className="fixed inset-0 z-40 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(255,255,255,0.8), rgba(200,50,50,0.6))',
+            background:
+              'radial-gradient(circle, rgba(255,255,255,0.8), rgba(200,50,50,0.6))',
             opacity: flashOpacity,
           }}
         />
       )}
-      {/* Dark fade overlay */}
+      {/* DARK FADE OVERLAY */}
       <div
         className="fixed inset-0 z-40 pointer-events-none"
         style={{

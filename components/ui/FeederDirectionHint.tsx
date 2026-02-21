@@ -12,23 +12,25 @@ function normalizeAngle(a: number): number {
 }
 
 export default function FeederDirectionHint() {
-  const position = useGameStore((s) => s.position);
-  const rotation = useGameStore((s) => s.rotation);
-  const feeders = useGameStore((s) => s.feeders);
-  const food = useGameStore((s) => s.food);
-  const water = useGameStore((s) => s.water);
-  const selectedSpecies = useGameStore((s) => s.selectedSpecies);
-  const gameState = useGameStore((s) => s.gameState);
+  const position = useGameStore(s => s.position);
+  const rotation = useGameStore(s => s.rotation);
+  const feeders = useGameStore(s => s.feeders);
+  const food = useGameStore(s => s.food);
+  const water = useGameStore(s => s.water);
+  const selectedSpecies = useGameStore(s => s.selectedSpecies);
+  const gameState = useGameStore(s => s.gameState);
 
   const species = BIRD_SPECIES[selectedSpecies];
 
   const hints = useMemo(() => {
     if (gameState !== 'flight') return [];
 
-    const unlocked = feeders.filter((f) => !f.lockedUntil || f.lockedUntil <= Date.now());
+    const unlocked = feeders.filter(
+      f => !f.lockedUntil || f.lockedUntil <= new Date().getTime(),
+    );
     const nearestFeeder = unlocked
-      .filter((f) => f.type === 'feeder')
-      .reduce<{ dist: number; f: typeof unlocked[0] } | null>((best, f) => {
+      .filter(f => f.type === 'feeder')
+      .reduce<{ dist: number; f: (typeof unlocked)[0] } | null>((best, f) => {
         const dx = f.position[0] - position[0];
         const dz = f.position[2] - position[2];
         const d = Math.sqrt(dx * dx + dz * dz);
@@ -36,8 +38,8 @@ export default function FeederDirectionHint() {
       }, null);
 
     const nearestBath = unlocked
-      .filter((f) => f.type === 'birdbath')
-      .reduce<{ dist: number; f: typeof unlocked[0] } | null>((best, f) => {
+      .filter(f => f.type === 'birdbath')
+      .reduce<{ dist: number; f: (typeof unlocked)[0] } | null>((best, f) => {
         const dx = f.position[0] - position[0];
         const dz = f.position[2] - position[2];
         const d = Math.sqrt(dx * dx + dz * dz);
@@ -53,7 +55,7 @@ export default function FeederDirectionHint() {
     if (nearestFeeder) {
       const worldAngle = Math.atan2(
         nearestFeeder.f.position[0] - position[0],
-        nearestFeeder.f.position[2] - position[2]
+        nearestFeeder.f.position[2] - position[2],
       );
       const relAngle = normalizeAngle(worldAngle - rotation);
       const urgency = 0.15 + 0.55 * (1 - food / species.attributes.maxFood);
@@ -63,7 +65,7 @@ export default function FeederDirectionHint() {
     if (nearestBath) {
       const worldAngle = Math.atan2(
         nearestBath.f.position[0] - position[0],
-        nearestBath.f.position[2] - position[2]
+        nearestBath.f.position[2] - position[2],
       );
       const relAngle = normalizeAngle(worldAngle - rotation);
       const urgency = 0.15 + 0.55 * (1 - water / species.attributes.maxWater);
@@ -71,23 +73,36 @@ export default function FeederDirectionHint() {
     }
 
     return result;
-  }, [gameState, feeders, position, rotation, food, water, selectedSpecies, species]);
+  }, [gameState, feeders, position, rotation, food, water, species]);
 
   if (gameState !== 'flight' || hints.length === 0) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-10">
       {hints.map((hint, idx) => (
-        <EdgeGlow key={idx} color={hint.color} relAngle={hint.relAngle} urgency={hint.urgency} />
+        <EdgeGlow
+          key={idx}
+          color={hint.color}
+          relAngle={hint.relAngle}
+          urgency={hint.urgency}
+        />
       ))}
     </div>
   );
 }
 
-function EdgeGlow({ color, relAngle, urgency }: { color: string; relAngle: number; urgency: number }) {
-  // Map relative angle to edge opacities
-  // 0 → ahead → top; ±π/2 → left/right; π → behind → bottom
-  // Camera is behind bird looking forward, so "ahead" in bird's facing = top of screen
+function EdgeGlow({
+  color,
+  relAngle,
+  urgency,
+}: {
+  color: string;
+  relAngle: number;
+  urgency: number;
+}) {
+  // MAP RELATIVE ANGLE TO EDGE OPACITIES
+  // 0 → AHEAD → TOP; ±π/2 → LEFT/RIGHT; π → BEHIND → BOTTOM
+  // CAMERA IS BEHIND BIRD LOOKING FORWARD, SO "AHEAD" IN BIRD'S FACING = TOP OF SCREEN
   const topWeight = Math.max(0, Math.cos(relAngle));
   const bottomWeight = Math.max(0, -Math.cos(relAngle));
   const rightWeight = Math.max(0, Math.sin(relAngle));

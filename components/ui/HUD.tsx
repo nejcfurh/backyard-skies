@@ -2,15 +2,18 @@
 
 import { useGameStore } from '@/store/gameStore';
 import { BIRD_SPECIES } from '@/lib/birdSpecies';
-import { RESOURCE_WARNING_THRESHOLD, RESOURCE_CRITICAL_THRESHOLD } from '@/utils/constants';
+import {
+  RESOURCE_WARNING_THRESHOLD,
+  RESOURCE_CRITICAL_THRESHOLD,
+} from '@/utils/constants';
 
 export default function HUD() {
-  const food = useGameStore((s) => s.food);
-  const water = useGameStore((s) => s.water);
-  const score = useGameStore((s) => s.score);
-  const distance = useGameStore((s) => s.distance);
-  const selectedSpecies = useGameStore((s) => s.selectedSpecies);
-  const gameState = useGameStore((s) => s.gameState);
+  const food = useGameStore(s => s.food);
+  const water = useGameStore(s => s.water);
+  const score = useGameStore(s => s.score);
+  const distance = useGameStore(s => s.distance);
+  const selectedSpecies = useGameStore(s => s.selectedSpecies);
+  const gameState = useGameStore(s => s.gameState);
 
   const species = BIRD_SPECIES[selectedSpecies];
   const foodPct = (food / species.attributes.maxFood) * 100;
@@ -20,11 +23,16 @@ export default function HUD() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50">
-      {/* Top bar */}
+      {/* TOP BAR */}
       <div className="flex justify-between items-start px-4 pt-[max(16px,env(safe-area-inset-top))]">
-        {/* Food circle + warning - left */}
+        {/* FOOD CIRCLE + WARNING - LEFT */}
         <div className="flex flex-col items-center gap-1.5">
-          <ResourceCircle value={foodPct} color="#4CAF50" bgColor="#1B5E20" icon="🌾" />
+          <ResourceCircle
+            value={foodPct}
+            color="#4CAF50"
+            bgColor="#1B5E20"
+            icon="🌾"
+          />
           {foodPct < RESOURCE_WARNING_THRESHOLD && foodPct > 0 && (
             <span className="text-[9px] font-bold text-[#FF9800] bg-black/50 py-1 px-2.5 rounded-xl backdrop-blur-md animate-[pulse_1.5s_ease-in-out_infinite] whitespace-nowrap">
               FIND FEEDER
@@ -32,7 +40,7 @@ export default function HUD() {
           )}
         </div>
 
-        {/* Score & distance - center */}
+        {/* SCORE & DISTANCE - CENTER */}
         <div className="flex flex-col items-center">
           <span className="text-6xl font-black text-white">
             {Math.floor(score).toLocaleString()}
@@ -42,9 +50,14 @@ export default function HUD() {
           </span>
         </div>
 
-        {/* Water circle + warning - right */}
+        {/* WATER CIRCLE + WARNING - RIGHT */}
         <div className="flex flex-col items-center gap-1.5">
-          <ResourceCircle value={waterPct} color="#00AEEF" bgColor="#01579B" icon="💧" />
+          <ResourceCircle
+            value={waterPct}
+            color="#00AEEF"
+            bgColor="#01579B"
+            icon="💧"
+          />
           {waterPct < RESOURCE_WARNING_THRESHOLD && waterPct > 0 && (
             <span className="text-[9px] font-bold text-[#4FC3F7] bg-black/50 py-1 px-2.5 rounded-xl backdrop-blur-md animate-[pulse_1.5s_ease-in-out_infinite] whitespace-nowrap">
               FIND BATH
@@ -53,15 +66,22 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* Feeding/Drinking state */}
+      {/* FEEDING/DRINKING STATE */}
       {showFeedingState && <FeedingIndicator gameState={gameState} />}
-
     </div>
   );
 }
 
-function ResourceCircle({ value, color, bgColor, icon }: {
-  value: number; color: string; bgColor: string; icon: string;
+function ResourceCircle({
+  value,
+  color,
+  bgColor,
+  icon,
+}: {
+  value: number;
+  color: string;
+  bgColor: string;
+  icon: string;
 }) {
   const size = 68;
   const strokeWidth = 5;
@@ -73,13 +93,27 @@ function ResourceCircle({ value, color, bgColor, icon }: {
   const strokeColor = isCritical ? '#FF3D00' : isWarning ? '#FF9800' : color;
 
   return (
-    <div className={`relative ${isCritical ? 'animate-[pulse_0.8s_ease-in-out_infinite]' : ''}`}>
+    <div
+      className={`relative ${isCritical ? 'animate-[pulse_0.8s_ease-in-out_infinite]' : ''}`}
+    >
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="rgba(0,0,0,0.4)" stroke={bgColor} strokeWidth={strokeWidth} />
         <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke={strokeColor} strokeWidth={strokeWidth}
-          strokeDasharray={circumference} strokeDashoffset={offset}
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="rgba(0,0,0,0.4)"
+          stroke={bgColor}
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
           strokeLinecap="round"
           className="transition-all duration-300"
         />
@@ -92,7 +126,7 @@ function ResourceCircle({ value, color, bgColor, icon }: {
 }
 
 function FeedingIndicator({ gameState }: { gameState: string }) {
-  const threatMeter = useGameStore((s) => s.threatMeter);
+  const threatMeter = useGameStore(s => s.threatMeter);
   const label = gameState === 'feeding' ? 'EATING' : 'DRINKING';
   const color = gameState === 'feeding' ? '#4CAF50' : '#00AEEF';
 
@@ -110,7 +144,12 @@ function FeedingIndicator({ gameState }: { gameState: string }) {
           className="h-full rounded-[3px] transition-[width] duration-200"
           style={{
             width: `${threatMeter}%`,
-            background: threatMeter > 60 ? '#FF3D00' : threatMeter > 30 ? '#FF9800' : '#4CAF50',
+            background:
+              threatMeter > 60
+                ? '#FF3D00'
+                : threatMeter > 30
+                  ? '#FF9800'
+                  : '#4CAF50',
           }}
         />
       </div>

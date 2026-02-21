@@ -9,15 +9,19 @@ import {
 } from '@/types';
 import { BIRD_SPECIES } from '@/lib/birdSpecies';
 import {
-  FEEDER_COUNT,
-  BIRDBATH_COUNT,
   SCORE_FEED_BONUS,
   SCORE_DRINK_BONUS,
   SCORE_EAGLE_DODGE_BONUS,
   DISTANCE_PER_UNIT,
 } from '@/utils/constants';
-import { isSafeFeederPosition } from '@/utils/chunkLayout';
 import { audioManager } from '@/lib/audioManager';
+import {
+  generateFeeders,
+  cullDistantFeeders,
+  spawnNearbyFeeders,
+} from '@/lib/feederManager';
+import { computePerchPosition } from '@/lib/perchPositions';
+import { loadLeaderboardFromStorage, saveLeaderboardEntry } from '@/lib/leaderboard';
 
 interface GameStore {
   // Game state
@@ -51,6 +55,7 @@ interface GameStore {
   eagleDodgeStartRotation: number;
   eagleDodgeTaps: number;
   eagleAltitudeHunt: boolean;
+  groundTimer: number;
 
   // Feeders
   feeders: FeederData[];
@@ -120,68 +125,6 @@ interface GameStore {
   saveScore: (name: string) => void;
 }
 
-let feederIdCounter = 0;
-
-function generateFeeders(centerX = 0, centerZ = 0): FeederData[] {
-  const feeders: FeederData[] = [];
-  const spread = 80; // spawn radius around center
-  const MIN_SPACING = 10; // minimum distance between feeders (~5 feeder widths)
-
-  function isFarEnough(x: number, z: number): boolean {
-    for (const f of feeders) {
-      const dx = f.position[0] - x;
-      const dz = f.position[2] - z;
-      if (dx * dx + dz * dz < MIN_SPACING * MIN_SPACING) return false;
-    }
-    return true;
-  }
-
-  function safePosition(): [number, number, number] | null {
-    for (let attempt = 0; attempt < 80; attempt++) {
-      const s = attempt < 50 ? spread : spread * 1.5;
-      const x = centerX + (Math.random() - 0.5) * s;
-      const z = centerZ + (Math.random() - 0.5) * s;
-      if (isSafeFeederPosition(x, z) && isFarEnough(x, z)) return [x, 0, z];
-    }
-    return null;
-  }
-
-  for (let i = 0; i < FEEDER_COUNT; i++) {
-    const pos = safePosition();
-    if (pos) {
-      feeders.push({
-        id: feederIdCounter++,
-        position: pos,
-        hasCat: Math.random() > 0.6,
-        type: 'feeder',
-      });
-    }
-  }
-
-  for (let i = 0; i < BIRDBATH_COUNT; i++) {
-    const pos = safePosition();
-    if (pos) {
-      feeders.push({
-        id: feederIdCounter++,
-        position: pos,
-        hasCat: Math.random() > 0.7,
-        type: 'birdbath',
-      });
-    }
-  }
-
-  return feeders;
-}
-
-function loadLeaderboardFromStorage(): LeaderboardEntry[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem('backyard-skies-leaderboard');
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
 
 export const useGameStore = create<GameStore>((set, get) => ({
   // Initial state
@@ -215,6 +158,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   eagleDodgeStartRotation: 0,
   eagleDodgeTaps: 0,
   eagleAltitudeHunt: false,
+  groundTimer: 0,
 
   feeders: [],
   activeFeeder: null,
@@ -266,6 +210,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       eagleDodgeStartRotation: 0,
       eagleDodgeTaps: 0,
       eagleAltitudeHunt: false,
+      groundTimer: 0,
       activeFeeder: null,
       feederCooldown: 0,
       feeders: generateFeeders(),
@@ -289,21 +234,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   finalizeDeath: () => {
-    const { score, distance, selectedSpecies } = get();
+    const { score, distance, selectedSpecies, playerName } = get();
     set({ gameState: 'game-over' });
-    // Auto-save anonymous entry
-    const leaderboard = loadLeaderboardFromStorage();
-    leaderboard.push({
-      name: get().playerName || 'Player',
-      species: selectedSpecies,
-      score,
-      distance: Math.round(distance * 100) / 100,
-      date: new Date().toISOString(),
-    });
-    leaderboard.sort((a, b) => b.score - a.score);
-    const top20 = leaderboard.slice(0, 20);
-    localStorage.setItem('backyard-skies-leaderboard', JSON.stringify(top20));
-    set({ leaderboard: top20 });
+    const leaderboard = saveLeaderboardEntry(
+      playerName || 'Player', selectedSpecies, score, distance,
+    );
+    set({ leaderboard });
   },
 
   // Player actions
@@ -393,32 +329,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Feeders
   landOnFeeder: feeder => {
     const newState = feeder.type === 'feeder' ? 'feeding' : 'drinking';
-
-    let perchX: number, perchY: number, perchZ: number, perchRotation: number;
-
-    if (feeder.type === 'feeder') {
-      // Bird lands on the orange tray, directly in front of the camera lens
-      // Camera is at z + 0.45 on the feeder body; bird sits closer to body, raised
-      perchX = feeder.position[0];
-      perchY = feeder.position[1] + 1.85; // slightly above tray level
-      perchZ = feeder.position[2] + 0.9; // on the tray edge, outside the housing
-      perchRotation = Math.PI; // face back toward camera (toward -z)
-    } else {
-      // Bird lands on the basin rim, opposite the camera unit
-      // Bath is on pole: rim at y + 2.25, camera unit at z - 1.05
-      perchX = feeder.position[0];
-      perchY = feeder.position[1] + 2.35; // just above rim level (2.25)
-      perchZ = feeder.position[2] + 1.1; // front rim, opposite camera on back
-      perchRotation = Math.PI; // face back toward camera
-    }
+    const perch = computePerchPosition(feeder);
 
     set({
       gameState: newState as GameState,
       activeFeeder: feeder,
       threatMeter: 0,
       perchTime: 0,
-      position: [perchX, perchY, perchZ],
-      rotation: perchRotation,
+      position: perch.position,
+      rotation: perch.rotation,
       velocity: [0, 0, 0],
     });
     audioManager.stopLoop('wind');
@@ -457,20 +376,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   refreshFeeders: () => {
     const { position, feeders } = get();
-    // Remove feeders that are far away, spawn new ones nearby
-    const maxDist = 80;
-    const nearby = feeders.filter(f => {
-      const dx = f.position[0] - position[0];
-      const dz = f.position[2] - position[2];
-      return Math.sqrt(dx * dx + dz * dz) < maxDist;
-    });
-
-    // If too few feeders nearby, spawn more ahead of the player
-    if (nearby.length < 6) {
+    const culled = cullDistantFeeders(feeders, position[0], position[2], 80);
+    if (culled.length < 6) {
       const newFeeders = generateFeeders(position[0], position[2]);
-      set({ feeders: [...nearby, ...newFeeders] });
+      set({ feeders: [...culled, ...newFeeders] });
     } else {
-      set({ feeders: nearby });
+      // Maintain density with incremental spawning
+      const withSpawns = spawnNearbyFeeders(
+        culled, position[0], position[2],
+        /* targetCount */ 4,
+        /* spawnDistance */ 50,
+        /* minSpacing */ 15,
+        /* seedBase */ Date.now(),
+      );
+      set({ feeders: withSpawns });
     }
   },
 
@@ -492,17 +411,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   saveScore: name => {
     const { score, distance, selectedSpecies } = get();
-    const leaderboard = loadLeaderboardFromStorage();
-    leaderboard.push({
-      name,
-      species: selectedSpecies,
-      score,
-      distance: Math.round(distance * 100) / 100,
-      date: new Date().toISOString(),
-    });
-    leaderboard.sort((a, b) => b.score - a.score);
-    const top20 = leaderboard.slice(0, 20);
-    localStorage.setItem('backyard-skies-leaderboard', JSON.stringify(top20));
-    set({ leaderboard: top20 });
+    const leaderboard = saveLeaderboardEntry(name, selectedSpecies, score, distance);
+    set({ leaderboard });
   },
 }));

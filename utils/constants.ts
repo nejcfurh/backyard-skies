@@ -7,6 +7,7 @@ export const FORWARD_SPEED_BASE = 12;
 export const MAX_ALTITUDE = 40;
 export const MIN_ALTITUDE = 0.3;
 export const GROUND_LEVEL = 0.3;
+export const GROUND_DEATH_TIME = 3; // seconds on ground before death
 
 // Resources
 export const RESOURCE_WARNING_THRESHOLD = 30;

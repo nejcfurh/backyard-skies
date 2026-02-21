@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Backyard Skies — by Birdbuddy',
+  title: 'Backyard Skies — Wings of Survival',
   description:
     'A 3D survival game where you fly as a bird between feeders in a suburban world. Choose your species and survive!',
   manifest: '/manifest.json',

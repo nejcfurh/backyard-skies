@@ -4,23 +4,13 @@ import { useRef, MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameStore } from '@/store/gameStore';
 import { BIRD_SPECIES } from '@/lib/birdSpecies';
-import {
-  GRAVITY,
-  FORWARD_SPEED_BASE,
-  TURN_SPEED,
-  MAX_ALTITUDE,
-  MIN_ALTITUDE,
-  SCORE_PER_SECOND,
-  FEEDER_PROXIMITY,
-  EAGLE_WARNING_TIME,
-  EAGLE_DODGE_WINDOW,
-  EAGLE_ALTITUDE_THRESHOLD,
-  THREAT_METER_BASE_RATE,
-  THREAT_METER_CAT_MULTIPLIER,
-  THREAT_METER_MAX,
-} from '@/utils/constants';
-import * as THREE from 'three';
+import { FEEDER_PROXIMITY, DISTANCE_PER_UNIT, GROUND_DEATH_TIME } from '@/utils/constants';
 import { audioManager } from '@/lib/audioManager';
+import { computeFlightStep } from '@/lib/flightPhysics';
+import { tickEagleThreat, tickCatThreat } from '@/lib/threatSystem';
+import { depleteResources, replenishFromFeeder } from '@/lib/resourceSystem';
+import { computeFlightScore, computeDistance } from '@/lib/scoring';
+import * as THREE from 'three';
 
 export function useGameLoop(joystickXRef: MutableRefObject<number>) {
   const scoreAccumulator = useRef(0);
@@ -37,7 +27,6 @@ export function useGameLoop(joystickXRef: MutableRefObject<number>) {
       return;
     }
 
-    // Reset wind flag when not in flight
     if (state.gameState !== 'flight') {
       windStarted.current = false;
     }
@@ -47,13 +36,13 @@ export function useGameLoop(joystickXRef: MutableRefObject<number>) {
     const joystickX = joystickXRef.current;
 
     if (state.gameState === 'flight') {
-      // Start wind loop if not already playing
+      // Audio: start wind loop
       if (!windStarted.current) {
         windStarted.current = true;
         audioManager.play('wind', { loop: true, volume: 0.08 });
       }
 
-      // Modulate wind volume based on speed
+      // Audio: modulate wind volume
       const speed = Math.sqrt(
         state.velocity[0] * state.velocity[0] +
         state.velocity[1] * state.velocity[1] +
@@ -61,7 +50,7 @@ export function useGameLoop(joystickXRef: MutableRefObject<number>) {
       );
       audioManager.setWindVolume(Math.min(0.15, speed * 0.012));
 
-      // Play eagle screech when threat appears
+      // Audio: eagle screech
       if (state.threatType === 'eagle' && !eagleSoundPlayed.current) {
         eagleSoundPlayed.current = true;
         audioManager.play('eagle', { volume: 0.2 });
@@ -70,26 +59,15 @@ export function useGameLoop(joystickXRef: MutableRefObject<number>) {
         eagleSoundPlayed.current = false;
       }
 
-      updateFlight(
-        state,
-        species,
-        joystickX,
-        clamped,
-        scoreAccumulator,
-        lastPosition,
-        flapApplied,
-      );
+      updateFlight(state, species, joystickX, clamped, scoreAccumulator, lastPosition, flapApplied);
 
-      // Periodically refresh feeders for infinite terrain
+      // Periodically refresh feeders
       feederRefreshTimer.current += clamped;
       if (feederRefreshTimer.current > 3) {
         feederRefreshTimer.current = 0;
         state.refreshFeeders();
       }
-    } else if (
-      state.gameState === 'feeding' ||
-      state.gameState === 'drinking'
-    ) {
+    } else if (state.gameState === 'feeding' || state.gameState === 'drinking') {
       updateFeeding(state, species, clamped);
     }
   });
@@ -102,191 +80,180 @@ function updateFlight(
   delta: number,
   scoreAccumulator: MutableRefObject<number>,
   lastPosition: MutableRefObject<THREE.Vector3>,
-  flapApplied: MutableRefObject<boolean>,
+  flapAppliedRef: MutableRefObject<boolean>,
 ) {
-  const {
-    position,
-    velocity,
-    rotation,
-    isFlapping,
-    flapCooldown,
-    flapStrength,
-  } = state;
   const attrs = species.attributes;
 
-  // Update rotation from joystick
-  const newRotation = rotation + joystickX * TURN_SPEED * delta;
-  state.setRotation(newRotation);
+  // --- Flight physics ---
+  const flight = computeFlightStep({
+    position: state.position,
+    velocity: state.velocity,
+    rotation: state.rotation,
+    isFlapping: state.isFlapping,
+    flapCooldown: state.flapCooldown,
+    flapStrength: state.flapStrength,
+    flapApplied: flapAppliedRef.current,
+    joystickX,
+    attrs,
+    delta,
+  });
 
-  // Calculate forward direction
-  const forwardX = Math.sin(newRotation);
-  const forwardZ = Math.cos(newRotation);
+  flapAppliedRef.current = flight.flapApplied;
 
-  // Forward speed based on species
-  const forwardSpeed = (FORWARD_SPEED_BASE * attrs.speed) / 20;
-
-  // Vertical velocity from previous frame
-  let vy = velocity[1];
-
-  // Apply gravity (strong pull when not flapping)
-  vy += GRAVITY * 0.6 * delta;
-
-  // Apply flap impulse ONCE per tap — frame-rate independent
-  if (isFlapping && !flapApplied.current) {
-    flapApplied.current = true;
-    vy += 6.0 * attrs.flapPower * flapStrength;
-    state.depleteStamina(2);
-  }
-  if (!isFlapping) {
-    flapApplied.current = false;
-  }
-
-  // Frame-rate independent drag: 0.97 per frame at 60fps → exp(-1.82 * dt)
-  vy *= Math.exp(-1.82 * delta);
-
-  // Calculate new position
-  const newX = position[0] + forwardX * forwardSpeed * delta;
-  let newY = position[1] + vy * delta;
-  const newZ = position[2] + forwardZ * forwardSpeed * delta;
-
-  // Clamp altitude
-  newY = Math.max(MIN_ALTITUDE, Math.min(MAX_ALTITUDE, newY));
-
-  // Ground collision — bird hit the ground
-  if (newY <= MIN_ALTITUDE && vy <= 0) {
-    vy = Math.max(0, vy);
-    // If the bird is sitting at ground level, game over
-    if (position[1] <= MIN_ALTITUDE + 0.1 && velocity[1] <= 0) {
+  // --- Ground timer: 3 seconds to take off before death ---
+  let groundTimer = state.groundTimer;
+  if (flight.onGround) {
+    groundTimer += delta;
+    if (groundTimer >= GROUND_DEATH_TIME) {
       state.gameOver('ground');
       return;
     }
+  } else {
+    groundTimer = 0;
   }
 
-  state.updatePosition([newX, newY, newZ]);
-  state.updateVelocity([forwardX * forwardSpeed, vy, forwardZ * forwardSpeed]);
+  // --- Resources ---
+  const resources = depleteResources(
+    state.food, state.water, state.stamina - flight.staminaCost, attrs, delta,
+  );
 
-  // Update flap cooldown
-  if (flapCooldown > 0) {
-    state.setFlapCooldown(Math.max(0, flapCooldown - delta));
+  if (resources.depletedResource) {
+    state.gameOver(resources.depletedResource);
+    return;
   }
 
-  // Deplete resources
-  state.depleteFood(attrs.foodDrain * delta);
-  state.depleteWater(attrs.waterDrain * delta);
+  // --- Scoring ---
+  const score = computeFlightScore(scoreAccumulator.current, delta);
+  scoreAccumulator.current = score.newAccumulator;
 
-  // Regenerate stamina slowly during flight
-  state.replenishStamina(3 * delta);
-
-  // Score
-  scoreAccumulator.current += SCORE_PER_SECOND * delta;
-  if (scoreAccumulator.current >= 1) {
-    const points = Math.floor(scoreAccumulator.current);
-    state.addScore(points);
-    scoreAccumulator.current -= points;
-  }
-
-  // Distance — reuse lastPosition ref, avoid allocation
-  const dx = newX - lastPosition.current.x;
-  const dy = newY - lastPosition.current.y;
-  const dz = newZ - lastPosition.current.z;
-  const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const dist = computeDistance(
+    lastPosition.current.x, lastPosition.current.y, lastPosition.current.z,
+    flight.position[0], flight.position[1], flight.position[2],
+  );
   if (dist > 0.01) {
-    state.addDistance(dist);
-    lastPosition.current.set(newX, newY, newZ);
+    lastPosition.current.set(flight.position[0], flight.position[1], flight.position[2]);
   }
 
-  // Tick down feeder cooldown (prevents immediate re-landing after flyAway)
-  if (state.feederCooldown > 0) {
-    state.setFeederCooldown(Math.max(0, state.feederCooldown - delta));
-  }
-
-  // Check feeder proximity (only if cooldown expired, skip locked feeders)
+  // --- Feeder proximity ---
+  let landed = false;
   if (state.feederCooldown <= 0) {
     const now = Date.now();
     for (const feeder of state.feeders) {
       if (feeder.lockedUntil && feeder.lockedUntil > now) continue;
-      const dx = newX - feeder.position[0];
-      const dy = newY - feeder.position[1];
-      const dz = newZ - feeder.position[2];
+      const dx = flight.position[0] - feeder.position[0];
+      const dy = flight.position[1] - feeder.position[1];
+      const dz = flight.position[2] - feeder.position[2];
       const distToFeeder = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (distToFeeder < FEEDER_PROXIMITY && newY < feeder.position[1] + 4) {
+      if (distToFeeder < FEEDER_PROXIMITY && flight.position[1] < feeder.position[1] + 4) {
         state.landOnFeeder(feeder);
-        return;
+        landed = true;
+        break;
       }
     }
   }
 
-  // Altitude-based eagle hunting
-  if (newY > EAGLE_ALTITUDE_THRESHOLD && !state.eagleAltitudeHunt) {
-    // Too high — eagle starts hunting immediately
-    state.setEagleAltitudeHunt(true);
-    state.setThreatWarning(true);
-    state.setThreat('eagle');
-    state.setEagleTimer(4); // 4 seconds to descend or get caught
-    return; // skip timer logic this frame so the 4s doesn't get overwritten
-  } else if (newY <= EAGLE_ALTITUDE_THRESHOLD && state.eagleAltitudeHunt && state.eagleDodgeWindow <= 0) {
-    // Dropped to safe altitude — eagle backs off
-    state.setEagleAltitudeHunt(false);
-    state.setThreat(null);
-    state.setThreatWarning(false);
-    state.setEagleTimer(30 + Math.random() * 60);
-  }
+  if (landed) return;
 
-  // Eagle threat timer
-  const newEagleTimer = state.eagleTimer - delta;
-  state.setEagleTimer(newEagleTimer);
+  // --- Eagle threat ---
+  const eagle = tickEagleThreat({
+    altitude: flight.position[1],
+    rotation: flight.rotation,
+    delta,
+    eagleTimer: state.eagleTimer,
+    eagleDodgeWindow: state.eagleDodgeWindow,
+    eagleDodgeStartRotation: state.eagleDodgeStartRotation,
+    eagleDodgeTaps: state.eagleDodgeTaps,
+    eagleAltitudeHunt: state.eagleAltitudeHunt,
+    threatType: state.threatType,
+    threatWarningActive: state.threatWarningActive,
+  });
 
-  // Altitude hunt — 4 second timer expired, eagle catches you
-  if (state.eagleAltitudeHunt && newEagleTimer <= 0) {
-    state.gameOver('eagle');
-    return;
-  }
-
-  if (
-    newEagleTimer <= EAGLE_WARNING_TIME &&
-    newEagleTimer > 0 &&
-    !state.threatWarningActive
-  ) {
-    state.setThreatWarning(true);
-    state.setThreat('eagle');
-  }
-
-  if (!state.eagleAltitudeHunt && newEagleTimer <= 0 && state.threatType === 'eagle') {
-    const nearAltitudeLimit = newY > EAGLE_ALTITUDE_THRESHOLD - 5;
-
-    // Start dodge window exactly once
-    if (state.eagleDodgeWindow <= 0) {
-      state.setEagleDodgeWindow(EAGLE_DODGE_WINDOW);
+  // Handle eagle actions
+  switch (eagle.action.type) {
+    case 'start_altitude_hunt':
       useGameStore.setState({
-        eagleDodgeStartRotation: newRotation,
-        eagleDodgeTaps: 0,
+        eagleAltitudeHunt: true,
+        threatWarningActive: true,
+        threatType: 'eagle',
+        eagleTimer: eagle.eagleTimer,
       });
-      return; // give player a full frame before countdown starts
-    }
-
-    if (nearAltitudeLimit) {
-      // Near altitude limit — 3 taps to dodge (checked via flap counting)
-      if (state.eagleDodgeTaps >= 3) {
-        state.dodgeEagle();
-        return;
-      }
-    } else {
-      // Safe altitude — turn ≥90° to dodge
-      let angleDiff = Math.abs(newRotation - state.eagleDodgeStartRotation) % (Math.PI * 2);
-      if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-      if (angleDiff >= Math.PI / 2) {
-        state.dodgeEagle();
-        return;
-      }
-    }
-
-    // Countdown the dodge window
-    const newDodgeWindow = state.eagleDodgeWindow - delta;
-    state.setEagleDodgeWindow(newDodgeWindow);
-    if (newDodgeWindow <= 0) {
+      useGameStore.setState({
+        position: flight.position,
+        velocity: flight.velocity,
+        rotation: flight.rotation,
+        flapCooldown: flight.flapCooldown,
+        food: resources.food,
+        water: resources.water,
+        stamina: resources.stamina,
+        score: state.score + score.points,
+        distance: state.distance + (dist > 0.01 ? dist * DISTANCE_PER_UNIT : 0),
+        feederCooldown: Math.max(0, state.feederCooldown - delta),
+        groundTimer,
+      });
+      return;
+    case 'end_altitude_hunt':
+      useGameStore.setState({
+        eagleAltitudeHunt: false,
+        threatType: null,
+        threatWarningActive: false,
+        eagleTimer: eagle.eagleTimer,
+      });
+      break;
+    case 'altitude_caught':
+    case 'caught':
       state.gameOver('eagle');
-    }
+      return;
+    case 'start_warning':
+      useGameStore.setState({
+        threatWarningActive: true,
+        threatType: 'eagle',
+        eagleTimer: eagle.eagleTimer,
+      });
+      break;
+    case 'start_dodge_window':
+      useGameStore.setState({
+        eagleDodgeWindow: eagle.eagleDodgeWindow,
+        eagleDodgeStartRotation: flight.rotation,
+        eagleDodgeTaps: 0,
+        eagleTimer: eagle.eagleTimer,
+      });
+      useGameStore.setState({
+        position: flight.position,
+        velocity: flight.velocity,
+        rotation: flight.rotation,
+        flapCooldown: flight.flapCooldown,
+        food: resources.food,
+        water: resources.water,
+        stamina: resources.stamina,
+        score: state.score + score.points,
+        distance: state.distance + (dist > 0.01 ? dist * DISTANCE_PER_UNIT : 0),
+        feederCooldown: Math.max(0, state.feederCooldown - delta),
+        groundTimer,
+      });
+      return;
+    case 'dodged':
+      state.dodgeEagle();
+      break;
+    case 'none':
+      break;
   }
+
+  // --- Batch state update ---
+  useGameStore.setState({
+    position: flight.position,
+    velocity: flight.velocity,
+    rotation: flight.rotation,
+    flapCooldown: flight.flapCooldown,
+    food: resources.food,
+    water: resources.water,
+    stamina: resources.stamina,
+    score: state.score + score.points,
+    distance: state.distance + (dist > 0.01 ? dist * DISTANCE_PER_UNIT : 0),
+    feederCooldown: Math.max(0, state.feederCooldown - delta),
+    eagleTimer: eagle.eagleTimer,
+    eagleDodgeWindow: eagle.eagleDodgeWindow,
+    groundTimer,
+  });
 }
 
 function updateFeeding(
@@ -294,39 +261,42 @@ function updateFeeding(
   species: (typeof BIRD_SPECIES)[string],
   delta: number,
 ) {
-  const { activeFeeder, threatMeter, gameState, perchTime } = state;
+  const { activeFeeder, gameState, perchTime } = state;
   if (!activeFeeder) return;
-
-  // Track time spent perched (used for fly-away delay)
-  useGameStore.setState({ perchTime: perchTime + delta });
 
   const attrs = species.attributes;
 
-  if (gameState === 'feeding') {
-    const amount = attrs.feedRate * delta;
-    state.replenishFood(amount);
-    state.addScore(amount * 2);
-  } else if (gameState === 'drinking') {
-    const amount = attrs.drinkRate * delta;
-    state.replenishWater(amount);
-    state.addScore(amount * 2);
-  }
+  // Replenish resources
+  const replenish = replenishFromFeeder(
+    state.food, state.water, activeFeeder.type, attrs, delta,
+  );
 
-  const threatRate = activeFeeder.hasCat
-    ? THREAT_METER_BASE_RATE * THREAT_METER_CAT_MULTIPLIER
-    : THREAT_METER_BASE_RATE;
+  // Cat threat
+  const cat = tickCatThreat({
+    threatMeter: state.threatMeter,
+    hasCat: activeFeeder.hasCat,
+    delta,
+    threatWarningActive: state.threatWarningActive,
+  });
 
-  const newThreatMeter = threatMeter + threatRate * delta;
-  state.setThreatMeter(newThreatMeter);
-
-  if (newThreatMeter >= THREAT_METER_MAX) {
-    state.setThreat('cat');
+  if (cat.caught) {
+    useGameStore.setState({ threatType: 'cat', threatMeter: cat.threatMeter });
     state.gameOver('cat');
+    return;
   }
 
-  const warningThreshold = activeFeeder.hasCat ? 20 : 60;
-  if (newThreatMeter > warningThreshold && !state.threatWarningActive) {
-    state.setThreatWarning(true);
-    state.setThreat('cat');
+  const updates: Record<string, unknown> = {
+    perchTime: perchTime + delta,
+    food: replenish.food,
+    water: replenish.water,
+    score: state.score + replenish.scoreGained,
+    threatMeter: cat.threatMeter,
+  };
+
+  if (cat.warning) {
+    updates.threatWarningActive = true;
+    updates.threatType = 'cat';
   }
+
+  useGameStore.setState(updates);
 }

@@ -1,4 +1,4 @@
-# Backyard Skies (by Birdbuddy) — Hackathon Technical Plan
+# Backyard Skies — Hackathon Technical Plan
 
 ## Context
 
@@ -12,14 +12,15 @@ A 3D survival game where players control a bird flying between feeders in a subu
 
 **Why not pure native (React Native / Unity)?**
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Unity** | Best 3D perf, huge asset store | C# (different skill set), slow iteration, heavy app size (~50MB+), app store review cycles |
-| **React Native + expo-gl + react-three-fiber** | JS ecosystem | Poor 3D performance on mobile, limited shader support, WebGL over native bridge = bottleneck, tiny community for 3D games |
-| **Godot** | Lightweight, open source | GDScript/C#, still needs app store deploy |
-| **Three.js (web) as PWA** | Instant deploy, no app store, fast iteration, huge Three.js ecosystem | WebGL perf ceiling on low-end phones (acceptable for hackathon scope) |
+| Option                                         | Pros                                                                  | Cons                                                                                                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Unity**                                      | Best 3D perf, huge asset store                                        | C# (different skill set), slow iteration, heavy app size (~50MB+), app store review cycles                                |
+| **React Native + expo-gl + react-three-fiber** | JS ecosystem                                                          | Poor 3D performance on mobile, limited shader support, WebGL over native bridge = bottleneck, tiny community for 3D games |
+| **Godot**                                      | Lightweight, open source                                              | GDScript/C#, still needs app store deploy                                                                                 |
+| **Three.js (web) as PWA**                      | Instant deploy, no app store, fast iteration, huge Three.js ecosystem | WebGL perf ceiling on low-end phones (acceptable for hackathon scope)                                                     |
 
 **Verdict:** For a hackathon where you need something playable fast — **Three.js on the web** is the no-brainer:
+
 - Share a URL with judges/testers — zero install friction
 - Deploy to Vercel in 30 seconds
 - Works on any device with a browser (phones, laptops, tablets)
@@ -30,18 +31,18 @@ A 3D survival game where players control a bird flying between feeders in a subu
 
 ## 2. Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **3D Engine** | Three.js via `@react-three/fiber` (R3F) |
-| **Physics** | `@react-three/rapier` (Rust-based, WASM, fast) |
-| **UI/HUD** | React (HTML overlay) — not in-canvas, for crisp text/gauges |
-| **State** | Zustand |
-| **Animation** | Three.js AnimationMixer + `@react-three/drei` helpers |
-| **Models** | GLTF/GLB format (Blender → glTF pipeline) |
-| **Audio** | Howler.js or Web Audio API |
-| **Build** | Vite + vite-plugin-glsl for shaders |
-| **Deploy** | Vercel (static site) or Cloudflare Pages |
-| **Mobile wrap** | PWA manifest + optional Capacitor for app store |
+| Layer           | Technology                                                  |
+| --------------- | ----------------------------------------------------------- |
+| **3D Engine**   | Three.js via `@react-three/fiber` (R3F)                     |
+| **Physics**     | `@react-three/rapier` (Rust-based, WASM, fast)              |
+| **UI/HUD**      | React (HTML overlay) — not in-canvas, for crisp text/gauges |
+| **State**       | Zustand                                                     |
+| **Animation**   | Three.js AnimationMixer + `@react-three/drei` helpers       |
+| **Models**      | GLTF/GLB format (Blender → glTF pipeline)                   |
+| **Audio**       | Howler.js or Web Audio API                                  |
+| **Build**       | Vite + vite-plugin-glsl for shaders                         |
+| **Deploy**      | Vercel (static site) or Cloudflare Pages                    |
+| **Mobile wrap** | PWA manifest + optional Capacitor for app store             |
 
 ---
 
@@ -58,14 +59,14 @@ A 3D survival game where players control a bird flying between feeders in a subu
 **States managed in Zustand:**
 
 ```ts
-gameState: "menu" | "flight" | "feeding" | "threat" | "gameOver"
-food: number        // 0-100
-water: number       // 0-100
-stamina: number     // 0-100
-score: number
-threatMeter: number // 0-100
-activeFeeder: Feeder | null
-threatType: "eagle" | "cat" | null
+gameState: 'menu' | 'flight' | 'feeding' | 'threat' | 'gameOver';
+food: number; // 0-100
+water: number; // 0-100
+stamina: number; // 0-100
+score: number;
+threatMeter: number; // 0-100
+activeFeeder: Feeder | null;
+threatType: 'eagle' | 'cat' | null;
 ```
 
 ### 3.2 Scene Hierarchy
@@ -95,6 +96,7 @@ threatType: "eagle" | "cat" | null
 ### 3.3 Core Systems
 
 #### Flight Controller
+
 - **Input:** Mouse position (desktop) / touch drag (mobile) / gyroscope (optional)
 - **Movement:** Bird follows a forward vector; mouse/touch offsets pitch + yaw
 - **Speed:** Constant forward speed with slight acceleration/deceleration
@@ -102,21 +104,25 @@ threatType: "eagle" | "cat" | null
 - **Stamina:** Barrel roll costs stamina; stamina regenerates slowly during flight
 
 #### Resource Depletion
+
 - Food: -2/sec during flight, +10/sec while feeding
 - Water: -1.5/sec during flight, +8/sec while feeding
 - Either hitting 0 = Game Over (starvation/dehydration)
 
 #### Feeder Interaction
+
 - **Detection:** Proximity trigger (sphere collider around feeder)
 - **Landing:** Smooth transition from flight cam → bird-cam (front close-up)
 - **Threat Meter:** Starts at 0, fills at variable rate (faster at "dangerous" feeders)
 - **Fly Away:** Button/swipe to exit → back to flight phase
 
 #### Threat Events
+
 - **Eagle (flight):** Random timer (30-90s). Red vignette + "!" warning → 2s window to barrel roll. Fail = caught = Game Over
 - **Cat (feeder):** Some feeders have cat proximity. Red glow aura visible before landing. Threat meter fills 2x faster. Cat silhouette animation plays as meter nears 100%
 
 #### Scoring
+
 - +1 point per second of survival
 - +bonus for each successful feeding (proportional to time spent)
 - +bonus for eagle dodge
@@ -127,6 +133,7 @@ threatType: "eagle" | "cat" | null
 ## 4. Hackathon Sprint Plan
 
 ### Sprint 1: Flyable Bird — "Can I fly?" (Day 1 morning)
+
 - [ ] Vite + R3F project scaffold + deploy to Vercel
 - [ ] Ground plane with color/basic texture
 - [ ] Placeholder bird (cone/sphere primitive or free low-poly GLB)
@@ -137,6 +144,7 @@ threatType: "eagle" | "cat" | null
 **Demo checkpoint:** Bird flies around a flat world. Shareable URL.
 
 ### Sprint 2: Feeders & Resources — "Why do I fly?" (Day 1 afternoon)
+
 - [ ] Place 3-5 feeder objects with proximity trigger
 - [ ] Landing transition → bird-cam close-up view
 - [ ] Food + Water HUD gauges (HTML overlay, CSS-only)
@@ -147,6 +155,7 @@ threatType: "eagle" | "cat" | null
 **Demo checkpoint:** Core gameplay loop works — fly, eat, survive.
 
 ### Sprint 3: Threats — "What can kill me?" (Day 2 morning)
+
 - [ ] Threat meter UI while perched (fills over time)
 - [ ] Cat: red glow on dangerous feeders, meter fills 2x faster
 - [ ] Eagle: random timer, red vignette + "!" warning
@@ -156,7 +165,8 @@ threatType: "eagle" | "cat" | null
 **Demo checkpoint:** Full survival loop — resource management + threat avoidance.
 
 ### Sprint 4: Polish & Presentation — "Make it feel good" (Day 2 afternoon)
-- [ ] Start menu: title "Backyard Skies (by Birdbuddy)" + "Start Flight" button
+
+- [ ] Start menu: title "Backyard Skies" + "Start Flight" button
 - [ ] Score display (survival time + bonuses)
 - [ ] Local leaderboard (localStorage)
 - [ ] Post-processing: vignette, bloom
@@ -172,13 +182,12 @@ threatType: "eagle" | "cat" | null
 
 - **Aesthetic:** Low-poly stylized (think Alto's Adventure meets Crossy Road)
 - **Color Palette:**
-  - Birdbuddy Blue: `#00AEEF` (UI accents, sky)
+  - Blue: `#00AEEF` (UI accents, sky)
   - Sunflower Yellow: `#FFD700` (food gauge, score)
   - Nature Greens: `#4CAF50` / `#2E7D32` (trees, grass)
   - Danger Red: `#FF3D00` (threat vignette, cat glow)
   - Warm White: `#FFF8E1` (houses, fences)
 - **Lighting:** Warm afternoon sun, soft ambient occlusion
-- **Bird model:** Stylized, Birdbuddy-branded (round, friendly, similar to hardware aesthetic)
 
 ---
 
@@ -246,8 +255,6 @@ backyard-skies/
 - **Multiplayer:** WebSocket server, see other birds flying
 - **Bird species:** Unlock different birds with unique stats
 - **Seasonal worlds:** Winter, spring, autumn environments
-- **Real Birdbuddy integration:** Connect to physical feeder data, see your real birds
-- **Backend leaderboard:** Supabase or existing Birdbuddy API
 - **App store:** Wrap with Capacitor (iOS/Android) or port to Unity for native performance
 - **AR mode:** Point camera at real yard, overlay game elements
 
